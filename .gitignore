@@ -1,0 +1,13 @@
+@"
+node_modules
+frontend/node_modules
+backend/node_modules
+frontend/.next
+backend/dist
+backend/uploads
+frontend/package-lock.json
+backend/package-lock.json
+.env
+frontend/.env.local
+backend/.env
+"@ | Set-Content .gitignore

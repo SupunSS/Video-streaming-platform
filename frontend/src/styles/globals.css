@@ -1,0 +1,106 @@
+/* src/app/globals.css */
+@tailwind base;
+@tailwind utilities;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply scrollbar-thin scrollbar-thumb-neon-cyan/20 scrollbar-track-transparent;
+  }
+  
+  body {
+    @apply bg-dark-500 text-white antialiased;
+  }
+  
+  ::selection {
+    @apply bg-neon-cyan/20 text-neon-cyan;
+  }
+}
+
+@layer components {
+  /* Glassmorphism Card */
+  .glass-card {
+    @apply bg-glass-light backdrop-blur-xl border border-white/10 rounded-2xl shadow-glass;
+  }
+  
+  .glass-card-hover {
+    @apply hover:bg-glass-medium hover:border-neon-cyan/30 hover:shadow-neon-cyan transition-all duration-300;
+  }
+  
+  /* Neon Button */
+  .btn-neon {
+    @apply relative px-6 py-3 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-lg font-semibold text-white
+           shadow-neon-cyan hover:shadow-neon-magenta transition-all duration-300
+           hover:scale-105 active:scale-95 overflow-hidden;
+  }
+  
+  .btn-neon::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:translate-x-full transition-transform duration-700;
+  }
+  
+  /* Input Field */
+  .input-glass {
+    @apply w-full px-4 py-3 bg-glass-light backdrop-blur-xl border border-white/10 rounded-lg
+           text-white placeholder-white/40 focus:outline-none focus:border-neon-cyan focus:shadow-neon-cyan
+           transition-all duration-300;
+  }
+  
+  /* Video Card */
+  .video-card {
+    @apply relative group cursor-pointer rounded-xl overflow-hidden
+           bg-glass-light backdrop-blur-xl border border-white/10
+           hover:border-neon-cyan/50 hover:shadow-neon-cyan hover:-translate-y-1
+           transition-all duration-300;
+  }
+  
+  .video-card-thumbnail {
+    @apply relative aspect-video overflow-hidden;
+  }
+  
+  .video-card-thumbnail img {
+    @apply w-full h-full object-cover group-hover:scale-110 transition-transform duration-500;
+  }
+  
+  .video-card-overlay {
+    @apply absolute inset-0 bg-gradient-to-t from-dark-500 via-transparent to-transparent opacity-0
+           group-hover:opacity-100 transition-opacity duration-300;
+  }
+  
+  /* Section Title */
+  .section-title {
+    @apply text-3xl font-bold mb-6 relative inline-block;
+    background: linear-gradient(135deg, #00F5FF 0%, #FF00FF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .section-title::after {
+    content: '';
+    @apply absolute -bottom-2 left-0 w-1/2 h-0.5 bg-gradient-to-r from-neon-cyan to-transparent;
+  }
+  
+  /* Scrollbar Styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-dark-300 rounded-full;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-gradient-to-b from-neon-cyan to-neon-magenta rounded-full;
+  }
+  
+  /* Loading Animation */
+  .loader {
+    @apply w-12 h-12 border-4 border-neon-cyan/20 border-t-neon-cyan rounded-full animate-spin;
+  }
+}
