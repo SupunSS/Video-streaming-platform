@@ -1,14 +1,36 @@
-import { Controller, Get, Post, Body, Param, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
+import { Request } from 'express';
 import { VideoService } from './video.service';
 import { CreateVideoDto } from './dto/create-video.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+
+type AuthenticatedRequest = Request & {
+  user: {
+    userId: string;
+    email: string;
+  };
+};
 
 @Controller('videos')
 export class VideoController {
   constructor(private readonly videoService: VideoService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() createVideoDto: CreateVideoDto) {
-    return this.videoService.create(createVideoDto);
+  create(
+    @Body() createVideoDto: CreateVideoDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.videoService.create(createVideoDto, req.user);
   }
 
   @Get()

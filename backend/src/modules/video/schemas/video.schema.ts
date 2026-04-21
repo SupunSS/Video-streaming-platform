@@ -31,4 +31,3 @@ export class Video {
 }
 
 export const VideoSchema = SchemaFactory.createForClass(Video);
-/*test commit for ci/cd pipeline*/
