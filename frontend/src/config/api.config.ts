@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001",
   ENDPOINTS: {
     AUTH: {
       LOGIN: "/auth/login",
@@ -7,6 +7,7 @@ export const API_CONFIG = {
     },
     VIDEOS: {
       ALL: "/videos",
+      ME: "/videos/me",
       ONE: (id: string) => `/videos/${id}`,
       VIEWS: (id: string) => `/videos/${id}/views`,
     },

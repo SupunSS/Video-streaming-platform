@@ -23,9 +23,15 @@ export class AuthService {
     if (existing) throw new ConflictException('Email already in use');
 
     const hashed = await bcrypt.hash(dto.password, 10);
-    const user = await this.userModel.create({ ...dto, password: hashed });
 
-    return this.signToken(user._id.toString(), user.email);
+    const user = await this.userModel.create({
+      email: dto.email,
+      username: dto.username,
+      password: hashed,
+      avatar: dto.avatar || '',
+    });
+
+    return this.buildAuthResponse(user);
   }
 
   async login(dto: LoginDto) {
@@ -35,12 +41,21 @@ export class AuthService {
     const match = await bcrypt.compare(dto.password, user.password);
     if (!match) throw new UnauthorizedException('Invalid credentials');
 
-    return this.signToken(user._id.toString(), user.email);
+    return this.buildAuthResponse(user);
   }
 
-  private signToken(userId: string, email: string) {
+  private buildAuthResponse(user: UserDocument) {
     return {
-      access_token: this.jwtService.sign({ sub: userId, email }),
+      access_token: this.jwtService.sign({
+        sub: user._id.toString(),
+        email: user.email,
+      }),
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        username: user.username,
+        avatar: user.avatar,
+      },
     };
   }
 }

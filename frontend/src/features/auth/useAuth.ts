@@ -17,7 +17,7 @@ export const useAuth = () => {
     (state) => state.auth,
   );
 
-  const login = async (payload: LoginPayload) => {
+  const loginUser = async (payload: LoginPayload) => {
     try {
       const data = await authService.login(payload);
       dispatch(setCredentials({ user: data.user, token: data.access_token }));
@@ -30,7 +30,7 @@ export const useAuth = () => {
     }
   };
 
-  const register = async (payload: RegisterPayload) => {
+  const registerUser = async (payload: RegisterPayload) => {
     try {
       const data = await authService.register(payload);
       dispatch(setCredentials({ user: data.user, token: data.access_token }));
@@ -49,5 +49,12 @@ export const useAuth = () => {
     router.push("/");
   };
 
-  return { user, token, isAuthenticated, login, register, signOut };
+  return {
+    user,
+    token,
+    isAuthenticated,
+    loginUser,
+    registerUser,
+    signOut,
+  };
 };

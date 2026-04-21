@@ -4,46 +4,67 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { FiSearch, FiBell, FiUpload, FiUser, FiX, FiSliders, FiLogOut, FiGrid } from 'react-icons/fi';
+import {
+  FiSearch,
+  FiBell,
+  FiUpload,
+  FiUser,
+  FiX,
+  FiSliders,
+  FiLogOut,
+  FiGrid,
+} from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { logout } from '@/store/slices/authSlice';
+import { setUser, logout } from '@/store/slices/authSlice';
+import { API_CONFIG } from '@/config/api.config';
+import { userService } from '@/services/user.service';
 
 const GENRES = [
-  { label: 'All',         emoji: '🎬' },
-  { label: 'Action',      emoji: '💥' },
-  { label: 'Thriller',    emoji: '🔪' },
-  { label: 'Sci-Fi',      emoji: '🚀' },
-  { label: 'Horror',      emoji: '👻' },
-  { label: 'Drama',       emoji: '🎭' },
-  { label: 'Comedy',      emoji: '😂' },
-  { label: 'Romance',     emoji: '❤️' },
-  { label: 'Animation',   emoji: '✨' },
+  { label: 'All', emoji: '🎬' },
+  { label: 'Action', emoji: '💥' },
+  { label: 'Thriller', emoji: '🔪' },
+  { label: 'Sci-Fi', emoji: '🚀' },
+  { label: 'Horror', emoji: '👻' },
+  { label: 'Drama', emoji: '🎭' },
+  { label: 'Comedy', emoji: '😂' },
+  { label: 'Romance', emoji: '❤️' },
+  { label: 'Animation', emoji: '✨' },
   { label: 'Documentary', emoji: '🎥' },
-  { label: 'Fantasy',     emoji: '🧙' },
-  { label: 'Crime',       emoji: '🕵️' },
+  { label: 'Fantasy', emoji: '🧙' },
+  { label: 'Crime', emoji: '🕵️' },
 ];
 
 export const Navbar = () => {
-  const [isScrolled,    setIsScrolled]    = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [searchQuery,   setSearchQuery]   = useState('');
-  const [activeGenre,   setActiveGenre]   = useState('All');
-  const [mounted,       setMounted]       = useState(false);
-  const [filtersOpen,   setFiltersOpen]   = useState(false);
-  const [dropdownOpen,  setDropdownOpen]  = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeGenre, setActiveGenre] = useState('All');
+  const [mounted, setMounted] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const pathname = usePathname();
-  const router   = useRouter();
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  
+
+  const avatarSrc = user?.avatar
+  ? user.avatar.startsWith('http')
+    ? user.avatar
+    : `${API_CONFIG.BASE_URL.replace(/\/$/, '')}/${user.avatar.replace(/^\/+/, '')}`
+  : '';
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+
     const handleScroll = () => setIsScrolled(window.scrollY > 0);
     window.addEventListener('scroll', handleScroll);
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -53,21 +74,49 @@ export const Navbar = () => {
         setDropdownOpen(false);
       }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const hydrateUser = async () => {
+      if (!mounted) return;
+      if (!isAuthenticated) return;
+      if (user) return;
+
+      try {
+        const currentUser = await userService.getMe();
+        dispatch(setUser(currentUser));
+      } catch (error) {
+        dispatch(logout());
+      }
+    };
+
+    hydrateUser();
+  }, [mounted, isAuthenticated, user, dispatch]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}&genre=${activeGenre !== 'All' ? activeGenre : ''}`);
+      router.push(
+        `/search?q=${encodeURIComponent(searchQuery)}&genre=${
+          activeGenre !== 'All' ? activeGenre : ''
+        }`,
+      );
     }
   };
 
   const handleGenreClick = (genre: string) => {
     setActiveGenre(genre);
+
     if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}&genre=${genre !== 'All' ? genre : ''}`);
+      router.push(
+        `/search?q=${encodeURIComponent(searchQuery)}&genre=${
+          genre !== 'All' ? genre : ''
+        }`,
+      );
     }
   };
 
@@ -99,11 +148,7 @@ export const Navbar = () => {
       }`}
     >
       <div className="max-w-[1920px] mx-auto px-4 lg:px-6">
-
-        {/* ── TOP ROW ── */}
         <div className="flex items-center gap-4 py-2">
-
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group shrink-0">
             <motion.div
               whileHover={{ scale: 1.06 }}
@@ -119,6 +164,7 @@ export const Navbar = () => {
                 priority
               />
             </motion.div>
+
             <span
               className="text-xl font-black tracking-widest text-white hidden sm:inline"
               style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.2em' }}
@@ -127,11 +173,12 @@ export const Navbar = () => {
             </span>
           </Link>
 
-          {/* Nav links */}
           <div className="hidden lg:flex items-center gap-8 shrink-0">
             {['Home', 'Library', 'Subscriptions'].map((item) => {
-              const href     = item === 'Home' ? '/' : `/${item.toLowerCase()}`;
-              const isActive = item === 'Home' ? pathname === '/' : pathname === `/${item.toLowerCase()}`;
+              const href = item === 'Home' ? '/' : `/${item.toLowerCase()}`;
+              const isActive =
+                item === 'Home' ? pathname === '/' : pathname === `/${item.toLowerCase()}`;
+
               return (
                 <Link
                   key={item}
@@ -152,9 +199,15 @@ export const Navbar = () => {
             })}
           </div>
 
-          {/* Search + filter toggle */}
-          <form onSubmit={handleSearch} className="flex-1 max-w-2xl mx-4 flex items-center gap-2">
-            <div className={`relative flex-1 transition-all duration-200 ${searchFocused ? 'scale-[1.02]' : ''}`}>
+          <form
+            onSubmit={handleSearch}
+            className="flex-1 max-w-2xl mx-4 flex items-center gap-2"
+          >
+            <div
+              className={`relative flex-1 transition-all duration-200 ${
+                searchFocused ? 'scale-[1.02]' : ''
+              }`}
+            >
               <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35 w-4 h-4 pointer-events-none" />
               <input
                 type="text"
@@ -165,6 +218,7 @@ export const Navbar = () => {
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
               />
+
               <AnimatePresence>
                 {searchQuery && (
                   <motion.button
@@ -181,7 +235,6 @@ export const Navbar = () => {
               </AnimatePresence>
             </div>
 
-            {/* Filter toggle */}
             <motion.button
               type="button"
               onClick={toggleFilters}
@@ -190,43 +243,68 @@ export const Navbar = () => {
                 filtersOpen
                   ? 'bg-amber-500 border-amber-500 text-black'
                   : hasActiveFilter
-                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-400'
-                  : 'bg-white/[0.06] border-white/[0.08] text-white/60 hover:bg-white/[0.10] hover:text-white'
+                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-400'
+                    : 'bg-white/[0.06] border-white/[0.08] text-white/60 hover:bg-white/[0.10] hover:text-white'
               }`}
             >
-              {filtersOpen ? <FiX className="w-4 h-4" /> : <FiSliders className="w-4 h-4" />}
+              {filtersOpen ? (
+                <FiX className="w-4 h-4" />
+              ) : (
+                <FiSliders className="w-4 h-4" />
+              )}
+
               <span className="hidden sm:inline">
                 {filtersOpen ? 'Close' : hasActiveFilter ? activeGenre : 'Filter'}
               </span>
+
               {!filtersOpen && hasActiveFilter && (
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full border-2 border-[#080a0f]" />
               )}
             </motion.button>
           </form>
 
-          {/* Right icons */}
           <div className="flex items-center gap-1 shrink-0">
-            <Link href="/upload" className="p-2 hover:bg-white/8 rounded-full transition-colors group" title="Upload">
+            <Link
+              href="/upload"
+              className="p-2 hover:bg-white/8 rounded-full transition-colors group"
+              title="Upload"
+            >
               <FiUpload className="w-5 h-5 text-white/60 group-hover:text-amber-400 transition-colors" />
             </Link>
-            <button className="p-2 hover:bg-white/8 rounded-full transition-colors relative group" title="Notifications">
+
+            <button
+              className="p-2 hover:bg-white/8 rounded-full transition-colors relative group"
+              title="Notifications"
+              type="button"
+            >
               <FiBell className="w-5 h-5 text-white/60 group-hover:text-amber-400 transition-colors" />
               {mounted && (
                 <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
               )}
             </button>
 
-            {/* User dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="p-1.5 ml-1 hover:bg-white/8 rounded-full transition-colors"
+                type="button"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-yellow-400 rounded-full flex items-center justify-center">
-                  {mounted && isAuthenticated && user?.username
-                    ? <span className="text-black text-xs font-bold">{user.username[0].toUpperCase()}</span>
-                    : <FiUser className="w-4 h-4 text-black" />
-                  }
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-amber-500 to-yellow-400 flex items-center justify-center border border-white/10">
+                  {mounted && isAuthenticated && avatarSrc ? (
+                    <Image
+                      src={avatarSrc}
+                      alt={user?.username || 'User avatar'}
+                      width={32}
+                      height={32}
+                      className="w-full h-full object-cover object-center"
+                    />
+                  ) : mounted && isAuthenticated && user?.username ? (
+                    <span className="text-black text-xs font-bold">
+                      {user.username[0].toUpperCase()}
+                    </span>
+                  ) : (
+                    <FiUser className="w-4 h-4 text-black" />
+                  )}
                 </div>
               </button>
 
@@ -241,10 +319,29 @@ export const Navbar = () => {
                   >
                     {mounted && isAuthenticated ? (
                       <>
-                        {/* User info */}
-                        <div className="px-4 py-3 border-b border-white/10">
-                          <p className="text-sm font-semibold text-white">{user?.username}</p>
-                          <p className="text-xs text-white/40 truncate">{user?.email}</p>
+                        <div className="px-4 py-3 border-b border-white/10 flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                            {avatarSrc ? (
+                              <Image
+                                src={avatarSrc}
+                                alt={user?.username || 'User avatar'}
+                                width={40}
+                                height={40}
+                                className="w-full h-full object-cover object-center"
+                              />
+                            ) : (
+                              <FiUser className="w-5 h-5 text-white/50" />
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">
+                              {user?.username}
+                            </p>
+                            <p className="text-xs text-white/40 truncate">
+                              {user?.email}
+                            </p>
+                          </div>
                         </div>
 
                         <Link
@@ -268,6 +365,7 @@ export const Navbar = () => {
                         <button
                           onClick={handleLogout}
                           className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 transition-colors border-t border-white/10"
+                          type="button"
                         >
                           <FiLogOut className="w-4 h-4" />
                           Sign Out
@@ -282,6 +380,7 @@ export const Navbar = () => {
                         >
                           Sign In
                         </Link>
+
                         <Link
                           href="/register"
                           onClick={() => setDropdownOpen(false)}
@@ -298,7 +397,6 @@ export const Navbar = () => {
           </div>
         </div>
 
-        {/* ── GENRE FILTER BAR ── */}
         <AnimatePresence>
           {filtersOpen && (
             <motion.div
@@ -314,6 +412,7 @@ export const Navbar = () => {
               >
                 {GENRES.map((genre) => {
                   const isActive = activeGenre === genre.label;
+
                   return (
                     <motion.button
                       key={genre.label}
@@ -324,6 +423,7 @@ export const Navbar = () => {
                           ? 'bg-amber-500 border-amber-500 text-black font-semibold shadow-[0_0_10px_rgba(245,158,11,0.25)]'
                           : 'bg-white/[0.04] border-white/[0.08] text-white/55 hover:bg-white/[0.09] hover:text-white hover:border-white/[0.15]'
                       }`}
+                      type="button"
                     >
                       <span className="text-[11px]">{genre.emoji}</span>
                       <span>{genre.label}</span>
@@ -334,7 +434,6 @@ export const Navbar = () => {
             </motion.div>
           )}
         </AnimatePresence>
-
       </div>
     </nav>
   );

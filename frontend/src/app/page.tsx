@@ -7,8 +7,9 @@ import { VideoRowCarousel } from '@/components/home/VideoRowCarousel';
 import { FiTrendingUp, FiClock, FiThumbsUp, FiZap } from 'react-icons/fi';
 import { Video } from '@/types/video.types';
 import { useVideos } from '@/features/video/useVideos';
+import { API_CONFIG } from '@/config/api.config';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const BASE_URL = API_CONFIG.BASE_URL;
 
 const mapToVideo = (v: any): Video => ({
   id: v._id,

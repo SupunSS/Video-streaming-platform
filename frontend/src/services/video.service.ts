@@ -26,6 +26,11 @@ export const videoService = {
     return res.data;
   },
 
+  async getMyVideos(): Promise<VideoResponse[]> {
+    const res = await axiosInstance.get(API_CONFIG.ENDPOINTS.VIDEOS.ME);
+    return res.data;
+  },
+
   async getOne(id: string): Promise<VideoResponse> {
     const res = await axiosInstance.get(API_CONFIG.ENDPOINTS.VIDEOS.ONE(id));
     return res.data;

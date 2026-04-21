@@ -1,36 +1,40 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import { FiUploadCloud, FiImage, FiX } from 'react-icons/fi';
 import { Navbar } from '@/components/layout/Navbar';
-import { useUpload } from '@/features/upload/useUpload';  // 👈 our real upload hook
+import { useUpload } from '@/features/upload/useUpload';
+import { useAuth } from '@/features/auth/useAuth';
 
 export default function UploadPage() {
   const router = useRouter();
-
-  // 👇 pull everything we need from the hook
-  // upload   = the function that does the actual uploading
-  // videoProgress = 0-100 number, real progress from axios
-  // isUploading   = true while uploading
-  // status        = 'idle' | 'uploading' | 'processing' | 'complete'
+  const { isAuthenticated } = useAuth();
   const { upload, videoProgress, isUploading, status } = useUpload();
 
-  const [videoFile, setVideoFile]   = useState<File | null>(null);
-  const [thumbnail, setThumbnail]   = useState<File | null>(null);
-  const [title, setTitle]           = useState('');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [thumbnail, setThumbnail] = useState<File | null>(null);
+  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [tags, setTags]             = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // Called when user drops a video file
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/login');
+      return;
+    }
+
+    setCheckingAuth(false);
+  }, [isAuthenticated, router]);
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file && file.type.startsWith('video/')) {
       setVideoFile(file);
-      // Auto-fill title from filename (remove extension)
       setTitle(file.name.replace(/\.[^/.]+$/, ''));
     }
   }, []);
@@ -59,19 +63,21 @@ export default function UploadPage() {
   };
 
   const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
-  // 👇 This is the real upload handler now
-  // Instead of faking progress with setInterval,
-  // we call the upload() function from our hook
-  // which talks to the backend for real
   const handleUpload = async () => {
     if (!videoFile || !title) return;
-
     await upload(videoFile, thumbnail, { title, description });
-    // redirect happens inside the hook after success
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-cyber-gradient flex items-center justify-center">
+        <div className="text-white/60 text-sm">Checking access...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-cyber-gradient">
@@ -88,23 +94,24 @@ export default function UploadPage() {
           </motion.h1>
 
           <div className="space-y-6">
-            {/* ── DROPZONE ── */}
             {!videoFile ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 {...getRootProps()}
                 className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer
-                           transition-all duration-300 ${
-                             isDragActive
-                               ? 'border-neon-cyan bg-neon-cyan/10 shadow-neon-cyan'
-                               : 'border-white/20 hover:border-neon-cyan/50 hover:bg-glass-light'
-                           }`}
+                  transition-all duration-300 ${
+                    isDragActive
+                      ? 'border-neon-cyan bg-neon-cyan/10 shadow-neon-cyan'
+                      : 'border-white/20 hover:border-neon-cyan/50 hover:bg-glass-light'
+                  }`}
               >
                 <input {...getInputProps()} />
-                <FiUploadCloud className={`w-16 h-16 mx-auto mb-4 ${
-                  isDragActive ? 'text-neon-cyan' : 'text-white/40'
-                }`} />
+                <FiUploadCloud
+                  className={`w-16 h-16 mx-auto mb-4 ${
+                    isDragActive ? 'text-neon-cyan' : 'text-white/40'
+                  }`}
+                />
                 <h3 className="text-xl font-semibold mb-2">
                   {isDragActive ? 'Drop your video here' : 'Drag & drop your video'}
                 </h3>
@@ -114,7 +121,6 @@ export default function UploadPage() {
                 </p>
               </motion.div>
             ) : (
-              // ── FILE SELECTED CARD ──
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -132,7 +138,7 @@ export default function UploadPage() {
                       </p>
                     </div>
                   </div>
-                  {/* Only allow removing file if not currently uploading */}
+
                   {!isUploading && (
                     <button
                       onClick={() => setVideoFile(null)}
@@ -143,15 +149,13 @@ export default function UploadPage() {
                   )}
                 </div>
 
-                {/* ── REAL PROGRESS BAR ── */}
-                {/* This shows real upload progress from axios, not fake */}
                 {status !== 'idle' && (
                   <div className="mt-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-white/60">
-                        {status === 'uploading'   && 'Uploading to server...'}
-                        {status === 'processing'  && 'Saving video details...'}
-                        {status === 'complete'    && '✓ Upload complete!'}
+                        {status === 'uploading' && 'Uploading to server...'}
+                        {status === 'processing' && 'Saving video details...'}
+                        {status === 'complete' && '✓ Upload complete!'}
                       </span>
                       <span className="text-sm text-neon-cyan">{videoProgress}%</span>
                     </div>
@@ -168,14 +172,12 @@ export default function UploadPage() {
               </motion.div>
             )}
 
-            {/* ── VIDEO DETAILS FORM ── */}
             {videoFile && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="glass-card p-6 space-y-6"
               >
-                {/* Title */}
                 <div>
                   <label className="block text-sm font-medium mb-2">Title *</label>
                   <input
@@ -188,7 +190,6 @@ export default function UploadPage() {
                   />
                 </div>
 
-                {/* Description */}
                 <div>
                   <label className="block text-sm font-medium mb-2">Description</label>
                   <textarea
@@ -201,7 +202,6 @@ export default function UploadPage() {
                   />
                 </div>
 
-                {/* Thumbnail */}
                 <div>
                   <label className="block text-sm font-medium mb-2">Thumbnail</label>
                   <div className="flex items-center gap-4">
@@ -217,8 +217,8 @@ export default function UploadPage() {
                       <label
                         htmlFor="thumbnail-upload"
                         className="w-40 h-24 bg-glass-light border-2 border-dashed border-white/20
-                                 rounded-lg flex flex-col items-center justify-center cursor-pointer
-                                 hover:border-neon-cyan/50 transition-colors"
+                          rounded-lg flex flex-col items-center justify-center cursor-pointer
+                          hover:border-neon-cyan/50 transition-colors"
                       >
                         {thumbnail ? (
                           <img
@@ -241,7 +241,6 @@ export default function UploadPage() {
                   </div>
                 </div>
 
-                {/* Tags */}
                 <div>
                   <label className="block text-sm font-medium mb-2">Tags</label>
                   <div className="space-y-2">
@@ -262,7 +261,10 @@ export default function UploadPage() {
                             className="px-3 py-1 bg-glass-light border border-white/10 rounded-full text-sm flex items-center gap-2"
                           >
                             {tag}
-                            <button onClick={() => removeTag(tag)} className="hover:text-neon-magenta transition-colors">
+                            <button
+                              onClick={() => removeTag(tag)}
+                              className="hover:text-neon-magenta transition-colors"
+                            >
                               <FiX className="w-3 h-3" />
                             </button>
                           </span>
@@ -272,7 +274,6 @@ export default function UploadPage() {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex items-center justify-end gap-3 pt-4">
                   <button
                     onClick={() => router.back()}

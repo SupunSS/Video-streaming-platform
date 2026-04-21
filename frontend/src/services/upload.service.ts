@@ -1,11 +1,18 @@
 import axiosInstance from "@/lib/axios";
 import { API_CONFIG } from "@/config/api.config";
 
+export interface UploadResponse {
+  url?: string;
+  path?: string;
+  thumbnailUrl?: string;
+  filename?: string;
+}
+
 export const uploadService = {
   async uploadVideo(
     file: File,
     onProgress?: (percent: number) => void,
-  ): Promise<{ url: string }> {
+  ): Promise<UploadResponse> {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -22,10 +29,11 @@ export const uploadService = {
       },
     );
 
+    console.log("upload video response:", res.data);
     return res.data;
   },
 
-  async uploadThumbnail(file: File): Promise<{ url: string }> {
+  async uploadThumbnail(file: File): Promise<UploadResponse> {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -37,6 +45,7 @@ export const uploadService = {
       },
     );
 
+    console.log("upload thumbnail response:", res.data);
     return res.data;
   },
 };
