@@ -17,6 +17,10 @@ export class CreateVideoDto {
   @IsNotEmpty()
   thumbnailUrl: string;
 
+  @IsString()
+  @IsOptional()
+  posterUrl?: string;
+
   @IsNumber()
   @IsOptional()
   duration?: number;

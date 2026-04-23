@@ -1,21 +1,13 @@
 import axiosInstance from "@/lib/axios";
 import { API_CONFIG } from "@/config/api.config";
 
-export interface UploadResponse {
-  url?: string;
-  path?: string;
-  thumbnailUrl?: string;
-  filename?: string;
-}
-
 export const uploadService = {
   async uploadVideo(
     file: File,
     onProgress?: (percent: number) => void,
-  ): Promise<UploadResponse> {
+  ): Promise<{ url: string }> {
     const formData = new FormData();
     formData.append("file", file);
-
     const res = await axiosInstance.post(
       API_CONFIG.ENDPOINTS.UPLOAD.VIDEO,
       formData,
@@ -28,15 +20,12 @@ export const uploadService = {
         },
       },
     );
-
-    console.log("upload video response:", res.data);
     return res.data;
   },
 
-  async uploadThumbnail(file: File): Promise<UploadResponse> {
+  async uploadThumbnail(file: File): Promise<{ url: string }> {
     const formData = new FormData();
     formData.append("file", file);
-
     const res = await axiosInstance.post(
       API_CONFIG.ENDPOINTS.UPLOAD.THUMBNAIL,
       formData,
@@ -44,8 +33,19 @@ export const uploadService = {
         headers: { "Content-Type": "multipart/form-data" },
       },
     );
+    return res.data;
+  },
 
-    console.log("upload thumbnail response:", res.data);
+  async uploadPoster(file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await axiosInstance.post(
+      API_CONFIG.ENDPOINTS.UPLOAD.POSTER,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
     return res.data;
   },
 };

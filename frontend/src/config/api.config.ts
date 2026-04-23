@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001",
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
   ENDPOINTS: {
     AUTH: {
       LOGIN: "/auth/login",
@@ -14,6 +14,7 @@ export const API_CONFIG = {
     UPLOAD: {
       VIDEO: "/upload/video",
       THUMBNAIL: "/upload/thumbnail",
+      POSTER: "/upload/poster", // 👈 add
     },
   },
 };

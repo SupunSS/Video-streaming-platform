@@ -208,7 +208,7 @@ export default function WatchPage() {
               </div>
 
               {video.description && (
-                <div className="bg-white/3 border border-white/[0.06] rounded-lg px-5 py-4 mb-8">
+                <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-5 py-4 mb-8">
                   <p className={`text-sm text-white/55 leading-relaxed whitespace-pre-line ${!showFullDescription && 'line-clamp-3'}`}>
                     {video.description}
                   </p>

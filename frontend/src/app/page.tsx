@@ -23,6 +23,7 @@ type RawVideo = {
   title: string;
   description?: string;
   thumbnailUrl: string;
+  posterUrl?: string;
   duration?: number;
   views?: number;
   createdAt: string;
@@ -32,13 +33,14 @@ type RawVideo = {
   };
 };
 
+const buildUrl = (url: string) =>
+  url.startsWith('http') ? url : `${BASE_URL}${url}`;
+
 const mapToVideo = (video: RawVideo, index: number): Video => ({
   id: video._id,
   title: video.title,
   description: video.description || '',
-  thumbnail: video.thumbnailUrl.startsWith('http')
-    ? video.thumbnailUrl
-    : `${BASE_URL}${video.thumbnailUrl}`,
+  thumbnail: buildUrl(video.posterUrl || video.thumbnailUrl),
   duration: video.duration || 0,
   views: video.views || 0,
   channel: video.user?.username || 'FLUX Creator',
@@ -47,9 +49,7 @@ const mapToVideo = (video: RawVideo, index: number): Video => ({
     day: 'numeric',
     year: 'numeric',
   }),
-  hlsUrl: video.videoUrl.startsWith('http')
-    ? video.videoUrl
-    : `${BASE_URL}${video.videoUrl}`,
+  hlsUrl: buildUrl(video.videoUrl),
   status: 'ready',
   rating: Number((8.1 + (index % 5) * 0.2).toFixed(1)),
   year: 2024 - (index % 4),
@@ -65,11 +65,11 @@ export default function HomePage() {
     [rawVideos],
   );
 
-  const featuredVideo = videos[0] ?? null;
-  const trending = videos.slice(0, 10);
-  const newReleases = videos.slice(0, 8);
+  const featuredVideo    = videos[0] ?? null;
+  const trending         = videos.slice(0, 10);
+  const newReleases      = videos.slice(0, 8);
   const continueWatching = videos.slice(0, 10);
-  const recommended = [...videos].reverse().slice(0, 10);
+  const recommended      = [...videos].reverse().slice(0, 10);
 
   if (loading) {
     return (
@@ -103,9 +103,7 @@ export default function HomePage() {
           <Link
             href="/upload"
             className="rounded-xl bg-white px-6 py-3 font-semibold text-black transition hover:bg-white/90"
-          >
-            Upload the first video
-          </Link>
+          >Upload the first video</Link>
         </div>
       </div>
     );

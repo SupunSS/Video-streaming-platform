@@ -6,7 +6,8 @@ export interface VideoResponse {
   title: string;
   description: string;
   videoUrl: string;
-  thumbnailUrl: string;
+  thumbnailUrl: string; // 16:9 for video page
+  posterUrl?: string; // 2:3 for cards
   views: number;
   duration: number;
   createdAt: string;
@@ -17,6 +18,7 @@ export interface CreateVideoPayload {
   description?: string;
   videoUrl: string;
   thumbnailUrl: string;
+  posterUrl?: string;
   duration?: number;
 }
 

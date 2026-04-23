@@ -15,7 +15,10 @@ export class Video {
   videoUrl: string;
 
   @Prop({ required: true })
-  thumbnailUrl: string;
+  thumbnailUrl: string; // 16:9 landscape — used on video page
+
+  @Prop({ default: '' })
+  posterUrl: string; // 2:3 portrait — used on cards
 
   @Prop({ default: 0 })
   views: number;

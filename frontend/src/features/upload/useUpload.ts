@@ -16,7 +16,8 @@ export const useUpload = () => {
 
   const upload = async (
     videoFile: File,
-    thumbnailFile: File | null,
+    thumbnailFile: File | null, // 16:9 landscape
+    posterFile: File | null, // 2:3 portrait
     metadata: { title: string; description?: string },
   ) => {
     if (!videoFile || !metadata.title) return;
@@ -25,7 +26,7 @@ export const useUpload = () => {
     setStatus("uploading");
 
     try {
-      // Upload video file
+      // 1. Upload video file
       const { url: videoUrl } = await uploadService.uploadVideo(
         videoFile,
         (percent) => {
@@ -33,21 +34,29 @@ export const useUpload = () => {
         },
       );
 
-      // Upload thumbnail if provided
+      // 2. Upload landscape thumbnail (16:9) if provided
       let thumbnailUrl = "/uploads/thumbnails/default.jpg";
       if (thumbnailFile) {
         const { url } = await uploadService.uploadThumbnail(thumbnailFile);
         thumbnailUrl = url;
       }
 
+      // 3. Upload portrait poster (2:3) if provided
+      let posterUrl = "";
+      if (posterFile) {
+        const { url } = await uploadService.uploadPoster(posterFile);
+        posterUrl = url;
+      }
+
       setStatus("processing");
 
-      // Save video metadata to DB
+      // 4. Save metadata to DB
       const payload: CreateVideoPayload = {
         title: metadata.title,
         description: metadata.description,
         videoUrl,
         thumbnailUrl,
+        posterUrl: posterUrl || thumbnailUrl, // fallback to thumbnail if no poster
       };
 
       await videoService.create(payload);
@@ -69,4 +78,3 @@ export const useUpload = () => {
 
   return { upload, videoProgress, isUploading, status };
 };
-/*test commit for ci/cd pipeline*/

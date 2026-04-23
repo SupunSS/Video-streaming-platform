@@ -28,9 +28,17 @@ export class UploadController {
     return { url: `/uploads/videos/${file.filename}` };
   }
 
+  // 16:9 landscape thumbnail — for video page header
   @Post('thumbnail')
   @UseInterceptors(FileInterceptor('file', { storage: storage('thumbnails') }))
   uploadThumbnail(@UploadedFile() file: Express.Multer.File) {
     return { url: `/uploads/thumbnails/${file.filename}` };
+  }
+
+  // 2:3 portrait poster — for video cards
+  @Post('poster')
+  @UseInterceptors(FileInterceptor('file', { storage: storage('posters') }))
+  uploadPoster(@UploadedFile() file: Express.Multer.File) {
+    return { url: `/uploads/posters/${file.filename}` };
   }
 }
