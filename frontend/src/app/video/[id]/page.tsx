@@ -1,322 +1,525 @@
-/* eslint-disable @next/next/no-img-element */
+/* frontend/src/app/video/[id]/page.tsx */
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { Navbar } from '@/components/layout/Navbar';
-import { VideoPlayer } from '@/components/video/VideoPlayer';
-import { CommentSection } from '@/components/video/CommentSection';
 import {
-  FiPlay, FiCheckCircle, FiShare2, FiDownload,
-  FiThumbsUp, FiPlus, FiChevronDown, FiChevronUp, FiList,
+  FiCheck,
+  FiChevronDown,
+  FiChevronUp,
+  FiClock,
+  FiDownload,
+  FiEye,
+  FiHeart,
+  FiList,
+  FiPlay,
+  FiPlus,
+  FiShare2,
 } from 'react-icons/fi';
+
+import { Navbar } from '@/components/layout/Navbar';
+import { CommentSection } from '@/components/video/CommentSection';
+import { VideoPlayer } from '@/components/video/VideoPlayer';
+import { API_CONFIG } from '@/config/api.config';
 import { videoService, VideoResponse } from '@/services/video.service';
-import toast from 'react-hot-toast';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const BASE_URL = API_CONFIG.BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-const buildUrl = (url: string) =>
-  url.startsWith('http') ? url : `${BASE_URL}${url}`;
+const buildUrl = (url?: string): string => {
+  if (!url) return '';
+  return url.startsWith('http') ? url : `${BASE_URL}${url}`;
+};
+
+const formatViews = (views: number): string => {
+  if (views >= 1_000_000_000) return `${(views / 1_000_000_000).toFixed(1)}B`;
+  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M`;
+  if (views >= 1_000) return `${(views / 1_000).toFixed(1)}K`;
+  return views.toString();
+};
+
+const formatDuration = (seconds: number): string => {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '0:00';
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds
+      .toString()
+      .padStart(2, '0')}`;
+  }
+
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
+
+const formatFullDate = (dateString: string): string =>
+  new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+const formatCompactDate = (dateString: string): string =>
+  new Date(dateString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+function WatchPageSkeleton() {
+  return (
+    <div className="min-h-screen bg-cyber-gradient text-white">
+      <Navbar />
+      <div className="mx-auto max-w-7xl px-4 pb-10 pt-24 sm:px-6 lg:px-8">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="space-y-6">
+            <div className="aspect-video animate-pulse rounded-3xl border border-white/10 bg-white/[0.05]" />
+            <div className="h-8 w-3/4 animate-pulse rounded bg-white/[0.08]" />
+            <div className="h-5 w-1/2 animate-pulse rounded bg-white/[0.06]" />
+            <div className="glass-card h-40 animate-pulse" />
+            <div className="glass-card h-72 animate-pulse" />
+          </div>
+          <div className="space-y-4">
+            <div className="glass-card h-28 animate-pulse" />
+            <div className="glass-card h-28 animate-pulse" />
+            <div className="glass-card h-28 animate-pulse" />
+            <div className="glass-card h-28 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WatchPageError() {
+  return (
+    <div className="min-h-screen bg-cyber-gradient text-white">
+      <Navbar />
+      <div className="mx-auto flex min-h-[80vh] max-w-7xl items-center justify-center px-4 pt-24 sm:px-6 lg:px-8">
+        <div className="glass-card w-full max-w-xl p-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/15 text-red-400">
+            <FiPlay className="text-xl" />
+          </div>
+          <h1 className="text-2xl font-bold">Video not found</h1>
+          <p className="mt-3 text-sm text-white/60">
+            The video could not be loaded. It may have been removed or the link is invalid.
+          </p>
+          <Link
+            href="/"
+            className="mt-6 inline-flex items-center rounded-full bg-amber-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
+          >
+            Back to Home
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetaPill({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/70 backdrop-blur-xl">
+      <span className="text-white/55">{icon}</span>
+      <span>{children}</span>
+    </div>
+  );
+}
+
+function ActionButton({
+  icon,
+  label,
+  active = false,
+  primary = false,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  primary?: boolean;
+  onClick?: () => void;
+}) {
+  const className = primary
+    ? 'bg-amber-500 text-black hover:bg-amber-400 border-amber-500'
+    : active
+      ? 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15'
+      : 'border-white/10 bg-white/[0.04] text-white/75 hover:bg-white/[0.08] hover:text-white';
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition ${className}`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function RecommendationCard({
+  video,
+  index,
+  isFeatured = false,
+}: {
+  video: VideoResponse;
+  index: number;
+  isFeatured?: boolean;
+}) {
+  const thumbnail = buildUrl(video.thumbnailUrl || video.posterUrl);
+  const videoHref = `/video/${video._id}`;
+
+  if (isFeatured) {
+    return (
+      <Link href={videoHref} className="group block">
+        <motion.article
+          whileHover={{ y: -2 }}
+          className="glass-card overflow-hidden p-0 transition-all duration-300 hover:border-amber-500/25"
+        >
+          <div className="relative aspect-video overflow-hidden">
+            {thumbnail ? (
+              <img
+                src={thumbnail}
+                alt={video.title}
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-white/[0.04] text-white/35">
+                No thumbnail
+              </div>
+            )}
+
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute left-4 top-4 rounded-full bg-black/55 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.2em] text-amber-300 backdrop-blur-xl">
+              Play next
+            </div>
+            <div className="absolute bottom-4 right-4 rounded-md bg-black/70 px-2 py-1 text-xs font-medium text-white">
+              {formatDuration(video.duration)}
+            </div>
+          </div>
+
+          <div className="p-4">
+            <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-white/45">
+              <span>Next up</span>
+              <span className="h-1 w-1 rounded-full bg-white/25" />
+              <span>#{index + 1}</span>
+            </div>
+
+            <h3 className="line-clamp-2 text-base font-semibold text-white transition group-hover:text-amber-300">
+              {video.title}
+            </h3>
+
+            <div className="mt-3 flex items-center gap-3 text-xs text-white/55">
+              <span>{formatViews(video.views)} views</span>
+              <span>•</span>
+              <span>{formatCompactDate(video.createdAt)}</span>
+            </div>
+          </div>
+        </motion.article>
+      </Link>
+    );
+  }
+
+  return (
+    <Link href={videoHref} className="group block">
+      <motion.article
+        whileHover={{ x: 4 }}
+        className="glass-card flex gap-3 overflow-hidden p-2.5 transition-all duration-300 hover:border-amber-500/20"
+      >
+        <div className="relative aspect-video w-40 shrink-0 overflow-hidden rounded-xl bg-white/[0.04]">
+          {thumbnail ? (
+            <img
+              src={thumbnail}
+              alt={video.title}
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-white/35">
+              No thumbnail
+            </div>
+          )}
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+          <div className="absolute bottom-2 right-2 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-medium text-white">
+            {formatDuration(video.duration)}
+          </div>
+        </div>
+
+        <div className="min-w-0 flex-1 py-1">
+          <div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/35">
+            <span>#{index + 1}</span>
+          </div>
+
+          <h3 className="line-clamp-2 text-sm font-semibold text-white transition group-hover:text-amber-300">
+            {video.title}
+          </h3>
+
+          <p className="mt-2 text-xs text-white/50">FLUX Creator</p>
+
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-white/45">
+            <span>{formatViews(video.views)} views</span>
+            <span>•</span>
+            <span>{formatCompactDate(video.createdAt)}</span>
+          </div>
+        </div>
+      </motion.article>
+    </Link>
+  );
+}
 
 export default function WatchPage() {
-  const params  = useParams();
+  const params = useParams();
   const videoId = params?.id as string;
 
-  const [video, setVideo]                         = useState<VideoResponse | null>(null);
-  const [allVideos, setAllVideos]                 = useState<VideoResponse[]>([]);
-  const [loading, setLoading]                     = useState(true);
-  const [error, setError]                         = useState(false);
-  const [isSubscribed, setIsSubscribed]           = useState(false);
-  const [isLiked, setIsLiked]                     = useState(false);
+  const [video, setVideo] = useState<VideoResponse | null>(null);
+  const [allVideos, setAllVideos] = useState<VideoResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
 
-  // 👇 fetch video directly inside the component using useEffect
-  // this avoids any hook resolution issues
   useEffect(() => {
     if (!videoId) return;
 
     const load = async () => {
       try {
         setLoading(true);
+        setError(false);
+
         const [videoData, allData] = await Promise.all([
           videoService.getOne(videoId),
           videoService.getAll(),
         ]);
+
         setVideo(videoData);
         setAllVideos(allData);
-        videoService.incrementViews(videoId).catch(() => {});
-      } catch (err) {
-        console.error('Failed to load video:', err);
+
+        videoService.incrementViews(videoId).catch(() => undefined);
+      } catch (loadError) {
+        console.error('Failed to load watch page:', loadError);
         setError(true);
-        toast.error('Failed to load video');
       } finally {
         setLoading(false);
       }
     };
 
-    load();
+    void load();
   }, [videoId]);
 
-  const recommendedVideos = allVideos.filter(v => v._id !== videoId).slice(0, 10);
+  const recommendations = useMemo(
+    () => allVideos.filter((item) => item._id !== videoId).slice(0, 12),
+    [allVideos, videoId],
+  );
 
-  const formatViews = (views: number) => {
-    if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M`;
-    if (views >= 1000) return `${(views / 1000).toFixed(1)}K`;
-    return views.toString();
-  };
+  const heroPoster = buildUrl(video?.thumbnailUrl || video?.posterUrl);
+  const videoSource = buildUrl(video?.videoUrl);
+  const description = video?.description?.trim() || 'No description available for this title.';
+  const shouldCollapseDescription = description.length > 220;
 
-  const formatDuration = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric',
-    });
-  };
-
-  // ── LOADING ──
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#080a0f] text-white">
-        <Navbar />
-        <div className="flex items-center justify-center h-[80vh]">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
-            <p className="text-white/40 text-sm">Loading video...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── ERROR ──
-  if (error || !video) {
-    return (
-      <div className="min-h-screen bg-[#080a0f] text-white">
-        <Navbar />
-        <div className="flex items-center justify-center h-[80vh]">
-          <div className="text-center">
-            <p className="text-white/60 text-lg mb-4">Video not found</p>
-            <Link href="/" className="text-amber-400 hover:text-amber-300 transition-colors">
-              ← Back to Home
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const nextVideo = recommendedVideos[0];
+  if (loading) return <WatchPageSkeleton />;
+  if (error || !video) return <WatchPageError />;
 
   return (
-    <div className="min-h-screen bg-[#080a0f] text-white">
+    <div className="min-h-screen bg-cyber-gradient text-white">
       <Navbar />
 
-      <main className="pt-14">
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.18),transparent_35%),radial-gradient(circle_at_top_left,rgba(59,130,246,0.12),transparent_30%)]" />
 
-        {/* ── VIDEO PLAYER ── */}
-        <div className="w-full bg-black">
-          <div className="max-w-screen-2xl mx-auto">
-            <div className="w-full aspect-video">
-              <VideoPlayer
-                src={buildUrl(video.videoUrl)}
-                poster={buildUrl(video.thumbnailUrl)}
-                title={video.title}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* ── CONTENT ── */}
-        <div className="max-w-screen-2xl mx-auto px-4 lg:px-8 py-6">
-          <div className="flex flex-col lg:flex-row gap-8">
-
-            {/* LEFT */}
-            <div className="flex-1 min-w-0">
-
-              <h1
-                className="text-3xl lg:text-5xl font-black uppercase tracking-widest leading-none text-white mb-3"
-                style={{ fontFamily: "'Bebas Neue', 'Anton', sans-serif" }}
+        <main className="relative mx-auto max-w-7xl px-4 pb-12 pt-24 sm:px-6 lg:px-8">
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <section className="min-w-0">
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35 }}
+                className="overflow-hidden rounded-[28px] border border-white/10 bg-black/30 shadow-[0_20px_80px_rgba(0,0,0,0.35)]"
               >
-                {video.title}
-              </h1>
+                <VideoPlayer src={videoSource} poster={heroPoster} title={video.title} />
+              </motion.div>
 
-              <div className="flex flex-wrap items-center gap-2 text-xs text-white/40 uppercase tracking-wide mb-5">
-                <span className="px-2 py-1 rounded border border-white/10">
-                  {new Date(video.createdAt).getFullYear()}
-                </span>
-                <span className="px-2 py-1 rounded border border-white/10">
-                  {formatDuration(video.duration)}
-                </span>
-                <span className="text-white/20">·</span>
-                <span>{formatViews(video.views)} views</span>
-                <span className="text-white/20">·</span>
-                <span>{formatDate(video.createdAt)}</span>
-              </div>
-
-              <div className="flex items-center gap-4 border-t border-b border-white/[0.06] py-4 mb-5">
-                <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-white/10 shrink-0 bg-white/10 flex items-center justify-center font-bold text-white">
-                  {video.title[0].toUpperCase()}
+              <motion.div
+                initial={{ opacity: 0, y: 22 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.05 }}
+                className="mt-6"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <MetaPill icon={<FiPlay />}>Featured stream</MetaPill>
+                  <MetaPill icon={<FiClock />}>{formatDuration(video.duration)}</MetaPill>
+                  <MetaPill icon={<FiEye />}>{formatViews(video.views)} views</MetaPill>
+                  <MetaPill icon={<FiList />}>{formatFullDate(video.createdAt)}</MetaPill>
                 </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-sm text-white">FLUX Creator</span>
-                    <FiCheckCircle className="w-3.5 h-3.5 text-amber-400" />
+
+                <h1 className="mt-4 text-3xl font-bold leading-tight text-white sm:text-4xl">
+                  {video.title}
+                </h1>
+
+                <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.045] p-5 backdrop-blur-2xl">
+                  <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex min-w-0 flex-1 items-center gap-4">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-lg font-bold text-black">
+                        {video.title.charAt(0).toUpperCase()}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="min-w-0 text-base font-semibold text-white sm:text-lg">
+                            <span className="block truncate sm:max-w-[320px] md:max-w-[420px] lg:max-w-[520px] xl:max-w-none">
+                              FLUX Creator
+                            </span>
+                          </p>
+
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
+                            <FiCheck className="text-[11px]" />
+                            Verified
+                          </span>
+                        </div>
+
+                        <p className="mt-1 text-sm leading-6 text-white/55">
+                          Uploaded on {formatFullDate(video.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex w-full flex-wrap items-center gap-3 xl:w-auto xl:max-w-[520px] xl:justify-end">
+                      <ActionButton
+                        icon={isSubscribed ? <FiCheck /> : <FiPlus />}
+                        label={isSubscribed ? 'Subscribed' : 'Subscribe'}
+                        primary={!isSubscribed}
+                        active={isSubscribed}
+                        onClick={() => setIsSubscribed((prev) => !prev)}
+                      />
+                      <ActionButton
+                        icon={<FiHeart />}
+                        label={isLiked ? 'Liked' : 'Like'}
+                        active={isLiked}
+                        onClick={() => setIsLiked((prev) => !prev)}
+                      />
+                      <ActionButton
+                        icon={<FiList />}
+                        label={isSaved ? 'Saved' : 'Watchlist'}
+                        active={isSaved}
+                        onClick={() => setIsSaved((prev) => !prev)}
+                      />
+                      <ActionButton icon={<FiShare2 />} label="Share" />
+                    </div>
                   </div>
-                  <p className="text-xs text-white/40">Uploaded {formatDate(video.createdAt)}</p>
                 </div>
-                <button
-                  onClick={() => setIsSubscribed(!isSubscribed)}
-                  className={`ml-auto shrink-0 px-5 py-2 text-xs font-semibold uppercase tracking-widest rounded transition-all ${
-                    isSubscribed
-                      ? 'border border-white/15 text-white/60 hover:bg-white/5'
-                      : 'bg-amber-500 text-black hover:bg-amber-400'
-                  }`}
-                >
-                  {isSubscribed ? 'Subscribed' : 'Subscribe'}
-                </button>
-              </div>
 
-              <div className="flex flex-wrap gap-2 mb-5">
-                <button
-                  onClick={() => setIsLiked(!isLiked)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded text-sm font-medium border transition-all ${
-                    isLiked
-                      ? 'bg-amber-500/15 border-amber-500/40 text-amber-400'
-                      : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  <FiThumbsUp className="w-4 h-4" />
-                  <span>{isLiked ? 'Liked' : 'Like'}</span>
-                </button>
-                <button className="flex items-center gap-2 px-5 py-2.5 rounded text-sm font-medium border bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-all">
-                  <FiPlus className="w-4 h-4" /><span>Watchlist</span>
-                </button>
-                <button className="flex items-center gap-2 px-5 py-2.5 rounded text-sm font-medium border bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-all">
-                  <FiShare2 className="w-4 h-4" /><span>Share</span>
-                </button>
-                <button className="flex items-center gap-2 px-5 py-2.5 rounded text-sm font-medium border bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-all">
-                  <FiDownload className="w-4 h-4" /><span>Save</span>
-                </button>
-              </div>
+                <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-2xl">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+                      About this title
+                    </h2>
+                    <span className="text-xs text-white/35">{formatCompactDate(video.createdAt)}</span>
+                  </div>
 
-              {video.description && (
-                <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-5 py-4 mb-8">
-                  <p className={`text-sm text-white/55 leading-relaxed whitespace-pre-line ${!showFullDescription && 'line-clamp-3'}`}>
-                    {video.description}
+                  <p
+                    className={`text-sm leading-7 text-white/75 ${
+                      showFullDescription ? '' : 'line-clamp-4'
+                    }`}
+                  >
+                    {description}
                   </p>
-                  {video.description.length > 120 && (
+
+                  {shouldCollapseDescription && (
                     <button
-                      onClick={() => setShowFullDescription(!showFullDescription)}
-                      className="flex items-center gap-1 mt-3 text-amber-400/80 hover:text-amber-400 text-xs font-medium transition-colors"
+                      type="button"
+                      onClick={() => setShowFullDescription((prev) => !prev)}
+                      className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-amber-300 transition hover:text-amber-200"
                     >
-                      {showFullDescription
-                        ? <><FiChevronUp className="w-3.5 h-3.5" />Show less</>
-                        : <><FiChevronDown className="w-3.5 h-3.5" />Show more</>
-                      }
+                      {showFullDescription ? (
+                        <>
+                          <FiChevronUp />
+                          Show less
+                        </>
+                      ) : (
+                        <>
+                          <FiChevronDown />
+                          Show more
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
-              )}
 
-              <CommentSection videoId={videoId} />
-            </div>
+                <div className="mt-6 rounded-[24px] border border-white/10 bg-white/[0.035] p-5 backdrop-blur-2xl">
+                  <CommentSection videoId={videoId} />
+                </div>
+              </motion.div>
+            </section>
 
-            {/* RIGHT */}
-            <div className="lg:w-[340px] shrink-0">
-              <div className="flex items-center gap-2 mb-4">
-                <FiList className="w-4 h-4 text-amber-400" />
-                <h2
-                  className="text-white font-bold uppercase tracking-[0.15em]"
-                  style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px' }}
-                >
-                  Up Next
-                </h2>
-                <span className="ml-auto text-xs text-white/30">{recommendedVideos.length} videos</span>
-              </div>
-
-              {recommendedVideos.length === 0 && (
-                <p className="text-white/30 text-sm text-center py-8">No other videos yet</p>
-              )}
-
-              {nextVideo && (
-                <Link
-                  href={`/video/${nextVideo._id}`}
-                  className="block group relative overflow-hidden rounded-lg mb-4 border border-white/[0.06] hover:border-amber-500/30 transition-colors"
-                >
-                  <div className="relative w-full aspect-video overflow-hidden">
-                    <img
-                      src={buildUrl(nextVideo.thumbnailUrl)}
-                      alt={nextVideo.title}
-                      className="w-full h-full object-cover brightness-50 group-hover:brightness-60 group-hover:scale-105 transition-all duration-500"
-                    />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                      <div className="w-14 h-14 rounded-full border-2 border-amber-400/70 flex items-center justify-center bg-black/40 group-hover:bg-amber-400/20 transition-all">
-                        <FiPlay className="w-5 h-5 text-amber-400 ml-1" />
-                      </div>
-                      <span className="text-xs text-white/60 uppercase tracking-widest">Play next</span>
+            <aside className="xl:sticky xl:top-24 xl:self-start">
+              <motion.div
+                initial={{ opacity: 0, x: 18 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.35, delay: 0.08 }}
+                className="space-y-4"
+              >
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-2xl">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-300/90">
+                        Up Next
+                      </p>
+                      <h2 className="mt-2 text-xl font-bold text-white">Keep watching</h2>
+                      <p className="mt-1 text-sm text-white/55">
+                        {recommendations.length} recommended videos
+                      </p>
                     </div>
-                    <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] px-1.5 py-0.5 rounded">
-                      {formatDuration(nextVideo.duration)}
+
+                    <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/55">
+                      Auto-play
                     </div>
                   </div>
-                  <div className="px-4 py-3 bg-[#0f1218]">
-                    <p className="text-[10px] text-amber-400/70 uppercase tracking-widest mb-1">Next up</p>
-                    <h3 className="text-sm font-semibold text-white line-clamp-1 group-hover:text-amber-300 transition-colors">
-                      {nextVideo.title}
-                    </h3>
-                    <p className="text-xs text-white/35 mt-0.5">{formatViews(nextVideo.views)} views</p>
-                  </div>
-                </Link>
-              )}
+                </div>
 
-              <div className="flex flex-col gap-0.5">
-                {recommendedVideos.slice(1).map((recVideo, index) => (
-                  <motion.div
-                    key={recVideo._id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.04 }}
-                  >
-                    <Link
-                      href={`/video/${recVideo._id}`}
-                      className="flex gap-3 p-2 rounded-lg group hover:bg-white/[0.04] transition-all"
-                    >
-                      <div className="relative w-[112px] h-[63px] rounded overflow-hidden shrink-0">
-                        <img
-                          src={buildUrl(recVideo.thumbnailUrl)}
-                          alt={recVideo.title}
-                          className="w-full h-full object-cover brightness-75 group-hover:brightness-90 group-hover:scale-105 transition-all duration-300"
+                {recommendations.length === 0 ? (
+                  <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.03] p-8 text-center text-sm text-white/50">
+                    No other videos available yet.
+                  </div>
+                ) : (
+                  <>
+                    <RecommendationCard video={recommendations[0]} index={0} isFeatured />
+
+                    <div className="space-y-3">
+                      {recommendations.slice(1).map((item, index) => (
+                        <RecommendationCard
+                          key={item._id}
+                          video={item}
+                          index={index + 1}
                         />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <FiPlay className="w-4 h-4 text-white drop-shadow-lg" />
-                        </div>
-                        <div className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1 py-px rounded">
-                          {formatDuration(recVideo.duration)}
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <h3 className="text-xs font-semibold text-white/85 group-hover:text-white line-clamp-2 leading-snug transition-colors">
-                          {recVideo.title}
-                        </h3>
-                        <p className="text-[11px] text-white/25">{formatViews(recVideo.views)} views</p>
-                      </div>
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+                      ))}
+                    </div>
+                  </>
+                )}
 
+                <Link
+                  href="/"
+                  className="block rounded-[24px] border border-white/10 bg-white/[0.03] p-5 text-sm text-white/65 transition hover:bg-white/[0.06] hover:text-white"
+                >
+                  <span className="block text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
+                    Explore more
+                  </span>
+                  <span className="mt-2 block text-base font-semibold">Back to home catalogue</span>
+                </Link>
+              </motion.div>
+            </aside>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
