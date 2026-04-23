@@ -1,5 +1,6 @@
 // src/types/video.types.ts
 export interface Video {
+  createdAt?: string;
   id: string;
   title: string;
   description?: string;

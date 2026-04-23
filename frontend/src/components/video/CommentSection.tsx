@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import React, { useState } from 'react';
@@ -106,7 +107,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ videoId }) => {
 
       {/* Comment Form */}
       <form onSubmit={handleSubmitComment} className="flex gap-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-cyan/20 to-neon-magenta/20 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-full bg-linear-to-br from-neon-cyan/20 to-neon-magenta/20 flex items-center justify-center flex-shrink-0">
           <span className="text-neon-cyan font-bold">Y</span>
         </div>
         <div className="flex-1 relative">
@@ -131,7 +132,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ videoId }) => {
       <div className="space-y-4">
         {comments.map((comment) => (
           <div key={comment.id} className="flex gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-cyan/20 to-neon-magenta/20 overflow-hidden flex-shrink-0 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-linear-to-br from-neon-cyan/20 to-neon-magenta/20 overflow-hidden flex-shrink-0 flex items-center justify-center">
               {comment.user.avatar ? (
                 <img src={comment.user.avatar} alt={comment.user.name} className="w-full h-full object-cover" />
               ) : (
