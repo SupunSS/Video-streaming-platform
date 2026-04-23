@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
-import { Providers } from "./providers";          // 👈 add
+import { Providers } from "./providers";          
 
 export const metadata: Metadata = {
   title: "NEXUS - Video Streaming Platform",
@@ -16,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-cyber-gradient antialiased">
-        <Providers>                               {/* 👈 wrap */}
+        <Providers>                              
           {children}
           <Toaster position="top-right" />
         </Providers>

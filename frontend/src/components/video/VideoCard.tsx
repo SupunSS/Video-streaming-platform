@@ -12,6 +12,7 @@ interface VideoCardProps {
   showProgress?: boolean;
   isActive?: boolean;
   onClick?: () => void;
+  enableHoverDetails?: boolean;
 }
 
 export const VideoCard: React.FC<VideoCardProps> = ({
@@ -19,6 +20,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   showProgress = false,
   isActive = false,
   onClick,
+  enableHoverDetails = false,
 }) => {
   const [saved, setSaved] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -49,6 +51,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   };
 
   const showNewBadge = isNewVideo(video.createdAt);
+  const showHoverDetails = isActive || enableHoverDetails;
 
   const handleLibraryToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -65,23 +68,21 @@ export const VideoCard: React.FC<VideoCardProps> = ({
         isActive ? 'group/card hover:scale-105 hover:z-50' : 'group/card'
       }`}
     >
-      {/* Image */}
       <Image
         src={video.thumbnail}
         alt={video.title}
         fill
         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
         className={`absolute inset-0 object-cover transition-transform duration-500 ${
-          isActive ? 'group-hover/card:scale-110' : ''
+          showHoverDetails ? 'group-hover/card:scale-110' : ''
         }`}
       />
 
-      {/* Overlays */}
       <div className="absolute inset-0 z-10 bg-linear-to-t from-black/95 via-black/10 to-transparent" />
 
       <div
         className={`absolute inset-0 z-10 transition-colors duration-300 ${
-          isActive
+          showHoverDetails
             ? 'bg-black/0 group-hover/card:bg-black/35'
             : 'bg-black/10 group-hover/card:bg-black/20'
         }`}
@@ -91,7 +92,6 @@ export const VideoCard: React.FC<VideoCardProps> = ({
         <div className="absolute inset-0 z-20 rounded-2xl ring-2 ring-neon-cyan/70 pointer-events-none" />
       )}
 
-      {/* NEW badge */}
       {showNewBadge && (
         <div className="absolute top-3 left-3 z-30">
           <span className="px-2 py-0.5 bg-neon-cyan text-dark-500 text-[10px] font-bold rounded-md uppercase tracking-wider">
@@ -100,7 +100,6 @@ export const VideoCard: React.FC<VideoCardProps> = ({
         </div>
       )}
 
-      {/* Rating */}
       {video.rating && (
         <div className="absolute top-3 right-14 z-30">
           <span className="flex items-center gap-1 text-white text-[11px] font-semibold bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-sm">
@@ -110,7 +109,6 @@ export const VideoCard: React.FC<VideoCardProps> = ({
         </div>
       )}
 
-      {/* Library button - always visible */}
       <button
         onClick={handleLibraryToggle}
         className={`absolute top-3 right-3 z-40 p-2 rounded-full border backdrop-blur-md transition-colors duration-200 ${
@@ -127,8 +125,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
         )}
       </button>
 
-      {/* Play button - active card only */}
-      {isActive && (
+      {showHoverDetails && (
         <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity duration-200">
           <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/50 flex items-center justify-center backdrop-blur-sm scale-75 group-hover/card:scale-100 transition-transform duration-300">
             <FiPlay className="w-6 h-6 text-white fill-white ml-1" />
@@ -136,13 +133,12 @@ export const VideoCard: React.FC<VideoCardProps> = ({
         </div>
       )}
 
-      {/* Bottom info */}
       <div className="absolute bottom-0 left-0 right-0 p-3 z-30">
         <h3 className="text-white font-semibold text-sm leading-snug line-clamp-2 drop-shadow-md">
           {video.title}
         </h3>
 
-        {isActive ? (
+        {showHoverDetails ? (
           <div className="overflow-hidden max-h-0 group-hover/card:max-h-24 transition-all duration-300 ease-out">
             <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-white/65 text-[11px]">
               {video.year && <span>{video.year}</span>}

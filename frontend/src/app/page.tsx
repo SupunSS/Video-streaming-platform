@@ -1,51 +1,82 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { HeroSection } from '@/components/home/HeroSection';
 import { VideoRowCarousel } from '@/components/home/VideoRowCarousel';
-import { FiTrendingUp, FiClock, FiThumbsUp, FiZap } from 'react-icons/fi';
+import {
+  FiTrendingUp,
+  FiClock,
+  FiThumbsUp,
+  FiZap,
+  FiPlayCircle,
+} from 'react-icons/fi';
 import { Video } from '@/types/video.types';
 import { useVideos } from '@/features/video/useVideos';
 import { API_CONFIG } from '@/config/api.config';
 
 const BASE_URL = API_CONFIG.BASE_URL;
 
-const mapToVideo = (v: any): Video => ({
-  id: v._id,
-  title: v.title,
-  description: v.description || '',
-  thumbnail: v.thumbnailUrl.startsWith('http')
-    ? v.thumbnailUrl
-    : `${BASE_URL}${v.thumbnailUrl}`,
-  duration: v.duration || 0,
-  views: v.views || 0,
-  channel: 'FLUX Creator',
-  uploadedAt: new Date(v.createdAt).toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
+type RawVideo = {
+  _id: string;
+  title: string;
+  description?: string;
+  thumbnailUrl: string;
+  duration?: number;
+  views?: number;
+  createdAt: string;
+  videoUrl: string;
+  user?: {
+    username?: string;
+  };
+};
+
+const mapToVideo = (video: RawVideo, index: number): Video => ({
+  id: video._id,
+  title: video.title,
+  description: video.description || '',
+  thumbnail: video.thumbnailUrl.startsWith('http')
+    ? video.thumbnailUrl
+    : `${BASE_URL}${video.thumbnailUrl}`,
+  duration: video.duration || 0,
+  views: video.views || 0,
+  channel: video.user?.username || 'FLUX Creator',
+  uploadedAt: new Date(video.createdAt).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   }),
-  hlsUrl: v.videoUrl.startsWith('http')
-    ? v.videoUrl
-    : `${BASE_URL}${v.videoUrl}`,
+  hlsUrl: video.videoUrl.startsWith('http')
+    ? video.videoUrl
+    : `${BASE_URL}${video.videoUrl}`,
   status: 'ready',
+  rating: Number((8.1 + (index % 5) * 0.2).toFixed(1)),
+  year: 2024 - (index % 4),
+  genre: ['Action', 'Thriller', 'Drama', 'Sci-Fi', 'Fantasy', 'Crime'][index % 6],
+  progress: ((index + 2) * 11) % 85,
 });
 
 export default function HomePage() {
   const { videos: rawVideos, loading } = useVideos();
 
-  const videos = useMemo(() => rawVideos.map(mapToVideo), [rawVideos]);
+  const videos = useMemo(
+    () => (rawVideos as RawVideo[]).map((video, index) => mapToVideo(video, index)),
+    [rawVideos],
+  );
 
-  const featuredVideo  = videos[0] ?? null;
-  const trending       = videos.slice(0, 10);
-  const newReleases    = videos.slice(0, 8);
-  const recommended    = videos.slice(0, 10);
+  const featuredVideo = videos[0] ?? null;
+  const trending = videos.slice(0, 10);
+  const newReleases = videos.slice(0, 8);
+  const continueWatching = videos.slice(0, 10);
+  const recommended = [...videos].reverse().slice(0, 10);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#080a0f] flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-cyber-gradient">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
-          <p className="text-white/40 text-sm">Loading videos...</p>
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/10 border-t-white" />
+          <p className="text-sm text-white/45">Loading videos...</p>
         </div>
       </div>
     );
@@ -53,55 +84,83 @@ export default function HomePage() {
 
   if (!loading && videos.length === 0) {
     return (
-      <div className="min-h-screen bg-[#080a0f]">
+      <div className="min-h-screen bg-cyber-gradient text-white">
         <Navbar />
-        <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
-          <p className="text-white/40 text-lg">No videos yet</p>
-          <a href="/upload" className="px-6 py-2.5 bg-amber-500 text-black font-semibold rounded-lg hover:bg-amber-400 transition-colors">Upload the first video</a>
+        <div className="flex h-[80vh] flex-col items-center justify-center gap-5 px-4 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/70 backdrop-blur-xl">
+            <FiPlayCircle className="text-sky-300" />
+            No content yet
+          </div>
+
+          <h1 className="text-4xl font-black tracking-tight md:text-5xl">
+            Your streaming homepage is ready
+          </h1>
+
+          <p className="max-w-xl text-base leading-7 text-white/55">
+            Upload your first title to start building a cinematic front page experience.
+          </p>
+
+          <Link
+            href="/upload"
+            className="rounded-xl bg-white px-6 py-3 font-semibold text-black transition hover:bg-white/90"
+          >
+            Upload the first video
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#080a0f]">
+    <div className="min-h-screen bg-cyber-gradient text-white">
       <Navbar />
-      <main>
-        {featuredVideo && <HeroSection video={featuredVideo} />}
 
-        <div className="relative z-10 -mt-20 pb-16 space-y-10">
-          <VideoRowCarousel
-            title="Trending Now"
-            icon={<FiTrendingUp className="w-4 h-4 text-amber-400" />}
-            badge={{ label: 'Live Rankings', pulse: true }}
-            videos={trending}
-            cardStyle="poster"
-          />
+      <main className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent_22%),linear-gradient(to_bottom,rgba(6,8,20,0.08),rgba(6,8,20,0.84)_52%,rgba(6,8,20,1))]" />
 
-          <VideoRowCarousel
-            title="New Releases"
-            icon={<FiZap className="w-4 h-4 text-amber-400" />}
-            badge={{ label: 'Just Added' }}
-            videos={newReleases}
-            cardStyle="poster"
-            highlightNew
-          />
+        {featuredVideo && (
+          <div className="relative">
+            <HeroSection video={featuredVideo} />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-[#060814] via-[#060814]/85 to-transparent" />
+          </div>
+        )}
 
-          <VideoRowCarousel
-            title="Continue Watching"
-            icon={<FiClock className="w-4 h-4 text-sky-400" />}
-            videos={videos}
-            cardStyle="poster"
-            showProgress
-          />
+        <section className="relative z-10 -mt-28 pb-24">
+          <div className="space-y-14 md:space-y-16 lg:space-y-18">
+            <div className="px-1">
+              <VideoRowCarousel
+                title="Trending Now"
+                icon={<FiTrendingUp className="h-4 w-4 text-sky-300" />}
+                videos={trending}
+              />
+            </div>
 
-          <VideoRowCarousel
-            title="Recommended For You"
-            icon={<FiThumbsUp className="w-4 h-4 text-violet-400" />}
-            videos={recommended}
-            cardStyle="poster"
-          />
-        </div>
+            <div className="px-1">
+              <VideoRowCarousel
+                title="New Releases"
+                icon={<FiZap className="h-4 w-4 text-blue-300" />}
+                videos={newReleases}
+              />
+            </div>
+
+            <div className="px-1">
+              <VideoRowCarousel
+                title="Continue Watching"
+                icon={<FiClock className="h-4 w-4 text-cyan-300" />}
+                videos={continueWatching}
+                showProgress
+              />
+            </div>
+
+            <div className="px-1">
+              <VideoRowCarousel
+                title="Recommended For You"
+                icon={<FiThumbsUp className="h-4 w-4 text-indigo-300" />}
+                videos={recommended}
+              />
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   );
