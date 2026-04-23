@@ -1,9 +1,8 @@
-/* frontend/src/app/video/[id]/page.tsx */
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   FiCheck,
@@ -17,13 +16,16 @@ import {
   FiPlay,
   FiPlus,
   FiShare2,
+  FiStar,
 } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 
 import { Navbar } from '@/components/layout/Navbar';
 import { CommentSection } from '@/components/video/CommentSection';
 import { VideoPlayer } from '@/components/video/VideoPlayer';
 import { API_CONFIG } from '@/config/api.config';
 import { videoService, VideoResponse } from '@/services/video.service';
+import axiosInstance from '@/lib/axios';
 
 const BASE_URL = API_CONFIG.BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -275,8 +277,36 @@ function RecommendationCard({
   );
 }
 
+function RatingButton({
+  value,
+  active,
+  disabled,
+  onClick,
+}: {
+  value: number;
+  active: boolean;
+  disabled: boolean;
+  onClick: (value: number) => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onClick(value)}
+      className={`flex h-11 w-11 items-center justify-center rounded-full border text-sm font-semibold transition ${
+        active
+          ? 'border-amber-500 bg-amber-500 text-black'
+          : 'border-white/10 bg-white/[0.04] text-white/70 hover:border-white/20 hover:bg-white/[0.08] hover:text-white'
+      } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+    >
+      {value}
+    </button>
+  );
+}
+
 export default function WatchPage() {
   const params = useParams();
+  const router = useRouter();
   const videoId = params?.id as string;
 
   const [video, setVideo] = useState<VideoResponse | null>(null);
@@ -288,6 +318,9 @@ export default function WatchPage() {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
+
+  const [userRating, setUserRating] = useState<number | null>(null);
+  const [submittingRating, setSubmittingRating] = useState(false);
 
   useEffect(() => {
     if (!videoId) return;
@@ -326,6 +359,43 @@ export default function WatchPage() {
   const videoSource = buildUrl(video?.videoUrl);
   const description = video?.description?.trim() || 'No description available for this title.';
   const shouldCollapseDescription = description.length > 220;
+  const ratingLabel =
+    video && video.ratingsCount > 0
+      ? `${video.averageRating.toFixed(1)} / 10`
+      : 'No ratings yet';
+
+  const handleRate = async (value: number) => {
+  const token =
+    typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+
+  if (!token) {
+    toast.error('Please sign in to rate this movie');
+    router.push('/login');
+    return;
+  }
+
+  if (!videoId) return;
+
+  try {
+    setSubmittingRating(true);
+
+    const res = await axiosInstance.patch(
+      API_CONFIG.ENDPOINTS.VIDEOS.RATE(videoId),
+      { value },
+    );
+
+    const updatedVideo = res.data as VideoResponse;
+
+    setVideo(updatedVideo);
+    setUserRating(value);
+    toast.success(`You rated this title ${value}/10`);
+  } catch (rateError) {
+    console.error('Failed to submit rating:', rateError);
+    toast.error('Failed to submit rating');
+  } finally {
+    setSubmittingRating(false);
+  }
+};
 
   if (loading) return <WatchPageSkeleton />;
   if (error || !video) return <WatchPageError />;
@@ -356,10 +426,13 @@ export default function WatchPage() {
                 className="mt-6"
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <MetaPill icon={<FiPlay />}>Featured stream</MetaPill>
+                  <MetaPill icon={<FiStar />}>{ratingLabel}</MetaPill>
+                  <MetaPill icon={<FiList />}>
+                    {video.ratingsCount > 0 ? `${video.ratingsCount} ratings` : 'Be the first to rate'}
+                  </MetaPill>
                   <MetaPill icon={<FiClock />}>{formatDuration(video.duration)}</MetaPill>
                   <MetaPill icon={<FiEye />}>{formatViews(video.views)} views</MetaPill>
-                  <MetaPill icon={<FiList />}>{formatFullDate(video.createdAt)}</MetaPill>
+                  <MetaPill icon={<FiPlay />}>{formatFullDate(video.createdAt)}</MetaPill>
                 </div>
 
                 <h1 className="mt-4 text-3xl font-bold leading-tight text-white sm:text-4xl">
@@ -414,6 +487,7 @@ export default function WatchPage() {
                         onClick={() => setIsSaved((prev) => !prev)}
                       />
                       <ActionButton icon={<FiShare2 />} label="Share" />
+                      <ActionButton icon={<FiDownload />} label="Download" />
                     </div>
                   </div>
                 </div>
@@ -453,6 +527,46 @@ export default function WatchPage() {
                       )}
                     </button>
                   )}
+                </div>
+
+                <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-2xl">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+                        Rate this title
+                      </h2>
+                      <p className="mt-2 text-sm text-white/65">
+                        Your score updates the live rating shown at the top of the page.
+                      </p>
+                    </div>
+
+                    <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-white/70">
+                      {video.ratingsCount > 0
+                        ? `${video.averageRating.toFixed(1)} average from ${video.ratingsCount} ratings`
+                        : 'No ratings submitted yet'}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {Array.from({ length: 10 }, (_, index) => index + 1).map((value) => (
+                      <RatingButton
+                        key={value}
+                        value={value}
+                        active={userRating === value}
+                        disabled={submittingRating}
+                        onClick={handleRate}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-2 text-sm text-white/55">
+                    <FiStar className="text-amber-300" />
+                    <span>
+                      {userRating
+                        ? `Your rating: ${userRating}/10`
+                        : 'Choose a score from 1 to 10'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="mt-6 rounded-[24px] border border-white/10 bg-white/[0.035] p-5 backdrop-blur-2xl">

@@ -10,11 +10,12 @@ export const API_CONFIG = {
       ME: "/videos/me",
       ONE: (id: string) => `/videos/${id}`,
       VIEWS: (id: string) => `/videos/${id}/views`,
+      RATE: (id: string) => `/videos/${id}/rating`,
     },
     UPLOAD: {
       VIDEO: "/upload/video",
       THUMBNAIL: "/upload/thumbnail",
-      POSTER: "/upload/poster", // 👈 add
+      POSTER: "/upload/poster",
     },
   },
 };

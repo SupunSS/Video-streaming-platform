@@ -1,17 +1,19 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
   Param,
   Patch,
-  UseGuards,
+  Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { VideoService } from './video.service';
-import { CreateVideoDto } from './dto/create-video.dto';
+
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CreateVideoDto } from './dto/create-video.dto';
+import { RateVideoDto } from './dto/rate-video.dto';
+import { VideoService } from './video.service';
 
 type AuthenticatedRequest = Request & {
   user: {
@@ -52,5 +54,15 @@ export class VideoController {
   @Patch(':id/views')
   incrementViews(@Param('id') id: string) {
     return this.videoService.incrementViews(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/rating')
+  rateVideo(
+    @Param('id') id: string,
+    @Body() rateVideoDto: RateVideoDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.videoService.rateVideo(id, req.user.userId, rateVideoDto.value);
   }
 }

@@ -3,6 +3,17 @@ import { HydratedDocument, Types } from 'mongoose';
 
 export type VideoDocument = HydratedDocument<Video>;
 
+@Schema({ _id: false })
+export class VideoRating {
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  userId: Types.ObjectId;
+
+  @Prop({ required: true, min: 1, max: 10 })
+  value: number;
+}
+
+export const VideoRatingSchema = SchemaFactory.createForClass(VideoRating);
+
 @Schema({ timestamps: true })
 export class Video {
   @Prop({ required: true })
@@ -15,16 +26,25 @@ export class Video {
   videoUrl: string;
 
   @Prop({ required: true })
-  thumbnailUrl: string; // 16:9 landscape — used on video page
+  thumbnailUrl: string;
 
   @Prop({ default: '' })
-  posterUrl: string; // 2:3 portrait — used on cards
+  posterUrl: string;
 
   @Prop({ default: 0 })
   views: number;
 
   @Prop({ default: 0 })
   duration: number;
+
+  @Prop({ type: [VideoRatingSchema], default: [] })
+  ratings: VideoRating[];
+
+  @Prop({ default: 0 })
+  averageRating: number;
+
+  @Prop({ default: 0 })
+  ratingsCount: number;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   ownerId: Types.ObjectId;
