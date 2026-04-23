@@ -1,24 +1,22 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Toaster } from "react-hot-toast";
-import { Providers } from "./providers";          
+import type { Metadata } from 'next';
+import './globals.css';
+import { Providers } from './providers';
+import { StreamVaultToastContainer } from '@/components/ui/CustomToast';
 
 export const metadata: Metadata = {
-  title: "NEXUS - Video Streaming Platform",
-  description: "Cloud-native video streaming platform",
+  title: 'NEXUS - Video Streaming Platform',
+  description: 'Cloud-native video streaming platform',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="bg-cyber-gradient antialiased">
-        <Providers>                              
+      <body>
+        <Providers>
           {children}
-          <Toaster position="top-right" />
+          <StreamVaultToastContainer />
         </Providers>
       </body>
     </html>

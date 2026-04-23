@@ -1,0 +1,174 @@
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  position: relative;
+  overflow: hidden;
+  min-width: 300px;
+  max-width: 420px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+}
+
+.enter {
+  animation: toastIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.exit {
+  animation: toastOut 0.2s ease-in both;
+}
+
+.success {
+  background: rgba(18, 34, 24, 0.96);
+  border-color: rgba(46, 213, 115, 0.3);
+  color: #d4f7e3;
+}
+
+.success .iconWrap {
+  background: rgba(46, 213, 115, 0.18);
+  color: #2ed573;
+  border: 1px solid rgba(46, 213, 115, 0.35);
+}
+
+.success .progressBar {
+  background: #2ed573;
+}
+
+.error {
+  background: rgba(34, 12, 14, 0.96);
+  border-color: rgba(255, 71, 87, 0.3);
+  color: #ffd6da;
+}
+
+.error .iconWrap {
+  background: rgba(255, 71, 87, 0.18);
+  color: #ff4757;
+  border: 1px solid rgba(255, 71, 87, 0.35);
+}
+
+.error .progressBar {
+  background: #ff4757;
+}
+
+.warning {
+  background: rgba(30, 22, 8, 0.96);
+  border-color: rgba(255, 165, 2, 0.3);
+  color: #ffecc2;
+}
+
+.warning .iconWrap {
+  background: rgba(255, 165, 2, 0.18);
+  color: #ffa502;
+  border: 1px solid rgba(255, 165, 2, 0.35);
+}
+
+.warning .progressBar {
+  background: #ffa502;
+}
+
+.info {
+  background: rgba(14, 16, 32, 0.96);
+  border-color: rgba(108, 99, 255, 0.35);
+  color: #dddaff;
+}
+
+.info .iconWrap {
+  background: rgba(108, 99, 255, 0.18);
+  color: #8b7fff;
+  border: 1px solid rgba(108, 99, 255, 0.3);
+}
+
+.info .progressBar {
+  background: #6c63ff;
+}
+
+.iconWrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.message {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.closeBtn {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.45);
+  transition: background 0.15s, color 0.15s;
+  outline: none;
+}
+
+.closeBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.progressBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2.5px;
+  border-radius: 0 0 12px 12px;
+  width: 100%;
+  animation: shrink 3.5s linear forwards;
+}
+
+.toast:hover .progressBar {
+  animation-play-state: paused;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toastOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+}
+
+@keyframes shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}

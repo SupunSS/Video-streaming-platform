@@ -7,8 +7,8 @@ import {
   LoginPayload,
   RegisterPayload,
 } from "@/services/auth.service";
-import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { notify } from "@/components/ui/CustomToast";
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
@@ -21,11 +21,11 @@ export const useAuth = () => {
     try {
       const data = await authService.login(payload);
       dispatch(setCredentials({ user: data.user, token: data.access_token }));
-      toast.success("Welcome back!");
+      notify.success("Welcome back!");
       router.push("/");
     } catch (err: any) {
       const message = err.response?.data?.message || "Invalid credentials";
-      toast.error(message);
+      notify.error(message);
       throw err;
     }
   };
@@ -34,18 +34,18 @@ export const useAuth = () => {
     try {
       const data = await authService.register(payload);
       dispatch(setCredentials({ user: data.user, token: data.access_token }));
-      toast.success("Account created!");
+      notify.success("Account created!");
       router.push("/");
     } catch (err: any) {
       const message = err.response?.data?.message || "Registration failed";
-      toast.error(message);
+      notify.error(message);
       throw err;
     }
   };
 
   const signOut = () => {
     dispatch(logout());
-    toast.success("Signed out");
+    notify.success("Signed out");
     router.push("/");
   };
 

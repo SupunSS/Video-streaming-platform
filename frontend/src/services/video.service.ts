@@ -2,6 +2,7 @@ import axiosInstance from "@/lib/axios";
 import { API_CONFIG } from "@/config/api.config";
 
 export interface VideoResponse {
+  ratingsCount: number;
   _id: string;
   title: string;
   description: string;

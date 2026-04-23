@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { videoService, VideoResponse } from "@/services/video.service";
-import toast from "react-hot-toast";
+import { notify } from "@/components/ui/CustomToast";
 
 export const useVideos = () => {
   const [videos, setVideos] = useState<VideoResponse[]>([]);
@@ -16,7 +16,7 @@ export const useVideos = () => {
         setVideos(data);
       } catch (err: any) {
         setError("Failed to load videos");
-        toast.error("Failed to load videos");
+        notify.error("Failed to load videos");
       } finally {
         setLoading(false);
       }

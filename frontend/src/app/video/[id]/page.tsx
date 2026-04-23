@@ -18,7 +18,7 @@ import {
   FiShare2,
   FiStar,
 } from 'react-icons/fi';
-import toast from 'react-hot-toast';
+import { notify } from "@/components/ui/CustomToast";
 
 import { Navbar } from '@/components/layout/Navbar';
 import { CommentSection } from '@/components/video/CommentSection';
@@ -369,7 +369,7 @@ export default function WatchPage() {
     typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
 
   if (!token) {
-    toast.error('Please sign in to rate this movie');
+   notify.error('Please sign in to rate this movie');
     router.push('/login');
     return;
   }
@@ -388,10 +388,10 @@ export default function WatchPage() {
 
     setVideo(updatedVideo);
     setUserRating(value);
-    toast.success(`You rated this title ${value}/10`);
+   notify.success(`You rated this title ${value}/10`);
   } catch (rateError) {
     console.error('Failed to submit rating:', rateError);
-    toast.error('Failed to submit rating');
+    notify.error('Failed to submit rating');
   } finally {
     setSubmittingRating(false);
   }

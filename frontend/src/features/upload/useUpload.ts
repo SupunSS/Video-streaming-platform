@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { uploadService } from "@/services/upload.service";
 import { videoService, CreateVideoPayload } from "@/services/video.service";
-import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { notify } from "@/components/ui/CustomToast";
 
 export const useUpload = () => {
   const router = useRouter();
@@ -62,14 +62,14 @@ export const useUpload = () => {
       await videoService.create(payload);
 
       setStatus("complete");
-      toast.success("Video uploaded successfully!");
+      notify.success("Video uploaded successfully!");
 
       setTimeout(() => {
         router.push("/");
       }, 1500);
     } catch (err: any) {
       const message = err.response?.data?.message || "Upload failed";
-      toast.error(message);
+      notify.error(message);
       setStatus("idle");
     } finally {
       setIsUploading(false);
