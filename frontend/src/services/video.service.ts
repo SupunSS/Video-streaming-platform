@@ -1,6 +1,14 @@
 import axiosInstance from "@/lib/axios";
 import { API_CONFIG } from "@/config/api.config";
 
+export interface VideoOwner {
+  _id: string;
+  username: string;
+  email: string;
+  avatar?: string;
+  accountType: string;
+}
+
 export interface VideoResponse {
   ratingsCount: number;
   _id: string;
@@ -12,6 +20,8 @@ export interface VideoResponse {
   views: number;
   duration: number;
   createdAt: string;
+  ownerId?: VideoOwner;
+  ownerEmail?: string;
 }
 
 export interface CreateVideoPayload {

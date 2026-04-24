@@ -14,12 +14,16 @@ export class VideoService {
 
   async create(
     createVideoDto: CreateVideoDto,
-    user: { userId: string; email: string },
+    user: {
+      userId: string;
+      email: string;
+      username: string;
+      accountType: string;
+    },
   ): Promise<VideoDocument> {
     const createdVideo = new this.videoModel({
       ...createVideoDto,
       ownerId: new Types.ObjectId(user.userId),
-      ownerEmail: user.email,
       ratings: [],
       averageRating: 0,
       ratingsCount: 0,
@@ -27,10 +31,10 @@ export class VideoService {
 
     return await createdVideo.save();
   }
-
   async findAll(): Promise<VideoDocument[]> {
     return await this.videoModel
       .find()
+      .populate('ownerId', 'username email avatar accountType') // ✅ added
       .sort({ createdAt: -1 })
       .limit(50)
       .exec();
@@ -39,12 +43,16 @@ export class VideoService {
   async findMyVideos(userId: string): Promise<VideoDocument[]> {
     return await this.videoModel
       .find({ ownerId: new Types.ObjectId(userId) })
+      .populate('ownerId', 'username email avatar accountType') // ✅ added
       .sort({ createdAt: -1 })
       .exec();
   }
 
   async findOne(id: string): Promise<VideoDocument> {
-    const video = await this.videoModel.findById(id).exec();
+    const video = await this.videoModel
+      .findById(id)
+      .populate('ownerId', 'username email avatar accountType') // ✅ added
+      .exec();
 
     if (!video) {
       throw new NotFoundException('Video not found');

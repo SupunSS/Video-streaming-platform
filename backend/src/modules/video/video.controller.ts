@@ -11,7 +11,7 @@ import {
 import { Request } from 'express';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { StudioGuard } from '../auth/guards/studio.guard'; // ✅ already imported, now used
+import { StudioGuard } from '../auth/guards/studio.guard';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { RateVideoDto } from './dto/rate-video.dto';
 import { VideoService } from './video.service';
@@ -20,7 +20,8 @@ type AuthenticatedRequest = Request & {
   user: {
     userId: string;
     email: string;
-    accountType: string; // ✅ added
+    username: string; // ✅ added
+    accountType: string;
   };
 };
 
@@ -28,13 +29,13 @@ type AuthenticatedRequest = Request & {
 export class VideoController {
   constructor(private readonly videoService: VideoService) {}
 
-  @UseGuards(JwtAuthGuard, StudioGuard) // ✅ StudioGuard added — only studios can upload
+  @UseGuards(JwtAuthGuard, StudioGuard)
   @Post()
   create(
     @Body() createVideoDto: CreateVideoDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.videoService.create(createVideoDto, req.user);
+    return this.videoService.create(createVideoDto, req.user); // req.user now includes username
   }
 
   @Get()

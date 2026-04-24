@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FiMail, FiLock, FiUser, FiCamera, FiVideo } from 'react-icons/fi'; // ✅ added FiVideo
+import { FiMail, FiLock, FiUser, FiCamera, FiVideo } from 'react-icons/fi';
 import { z } from 'zod';
 import { useAuth } from '@/features/auth/useAuth';
 import { uploadService } from '@/services/upload.service';
+import { ImageCropper } from '@/components/ui/imagecropper'; // ✅ added
 
 const registerSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -26,7 +27,11 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState('');
-  const [accountType, setAccountType] = useState<'user' | 'studio'>('user'); // ✅ moved inside component
+  const [accountType, setAccountType] = useState<'user' | 'studio'>('user');
+
+  // ✅ cropper state
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [rawAvatarSrc, setRawAvatarSrc] = useState<string | null>(null);
 
   const {
     register,
@@ -36,13 +41,33 @@ export default function RegisterPage() {
     resolver: zodResolver(registerSchema),
   });
 
+  // ✅ open cropper instead of directly setting the file
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) return;
+    if (!file || !file.type.startsWith('image/')) return;
 
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawAvatarSrc(reader.result as string);
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+
+    // reset so same file can be re-selected
+    e.target.value = '';
+  };
+
+  // ✅ called when user confirms crop
+  const handleCropComplete = (croppedFile: File) => {
+    setAvatarFile(croppedFile);
+    setAvatarPreview(URL.createObjectURL(croppedFile));
+    setCropperOpen(false);
+    setRawAvatarSrc(null);
+  };
+
+  const handleCropCancel = () => {
+    setCropperOpen(false);
+    setRawAvatarSrc(null);
   };
 
   const onSubmit = async (data: RegisterFormData) => {
@@ -61,7 +86,7 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
         avatar,
-        accountType, // ✅ passed to registerUser
+        accountType,
       });
     } finally {
       setIsLoading(false);
@@ -70,6 +95,18 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-[#080a0f] flex items-center justify-center px-4">
+
+      {/* ✅ Avatar cropper modal — 1:1 for profile picture */}
+      {cropperOpen && rawAvatarSrc && (
+        <ImageCropper
+          imageSrc={rawAvatarSrc}
+          aspect={1}
+          title="Crop Profile Picture"
+          onComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+        />
+      )}
+
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] p-8">
         <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
         <p className="text-white/50 mb-8">Join FLUX and start streaming.</p>
@@ -98,12 +135,16 @@ export default function RegisterPage() {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={handleAvatarChange}
+                  onChange={handleAvatarChange} // ✅ now opens cropper
                   disabled={isLoading}
                 />
               </label>
             </div>
-            <p className="text-sm text-white/50">Add a profile picture</p>
+
+            {/* ✅ show re-crop hint if avatar already selected */}
+            <p className="text-sm text-white/50">
+              {avatarPreview ? 'Click the camera to re-crop' : 'Add a profile picture'}
+            </p>
           </div>
 
           {/* Account Type Toggle */}

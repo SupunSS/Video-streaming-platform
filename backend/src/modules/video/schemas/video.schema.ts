@@ -49,7 +49,7 @@ export class Video {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   ownerId: Types.ObjectId;
 
-  @Prop({ required: true })
+  @Prop({ default: '' })
   ownerEmail: string;
 }
 

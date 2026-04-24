@@ -14,6 +14,9 @@ export class User {
   @Prop({ required: true })
   password: string;
 
+  @Prop({ default: '' })
+  avatar: string;
+
   @Prop({ default: 'user', enum: ['user', 'studio'] })
   accountType: string;
 }

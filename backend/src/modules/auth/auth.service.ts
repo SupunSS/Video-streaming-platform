@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  ConflictException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
@@ -47,14 +43,15 @@ export class AuthService {
       access_token: this.jwtService.sign({
         sub: user._id.toString(),
         email: user.email,
-        accountType: user.accountType, // ✅ added to JWT payload
+        username: user.username, // ✅ added
+        accountType: user.accountType,
       }),
       user: {
         id: user._id.toString(),
         email: user.email,
         username: user.username,
         avatar: user.avatar,
-        accountType: user.accountType, // ✅ added to response
+        accountType: user.accountType,
       },
     };
   }

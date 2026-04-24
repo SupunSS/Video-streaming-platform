@@ -264,7 +264,9 @@ function RecommendationCard({
             {video.title}
           </h3>
 
-          <p className="mt-2 text-xs text-white/50">FLUX Creator</p>
+          <p className="mt-2 text-xs text-white/50">
+  {video.ownerId?.username ?? 'Unknown Studio'}
+</p>
 
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-white/45">
             <span>{formatViews(video.views)} views</span>
@@ -442,28 +444,41 @@ export default function WatchPage() {
                 <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.045] p-5 backdrop-blur-2xl">
                   <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
                     <div className="flex min-w-0 flex-1 items-center gap-4">
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-lg font-bold text-black">
-                        {video.title.charAt(0).toUpperCase()}
-                      </div>
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
+  {video.ownerId?.avatar ? (
+    <img
+      src={buildUrl(video.ownerId.avatar)}
+      alt={video.ownerId.username}
+      className="h-full w-full object-cover"
+    />
+  ) : (
+    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-400 to-amber-600 text-lg font-bold text-black">
+      {(video.ownerId?.username ?? 'S').charAt(0).toUpperCase()}
+    </div>
+  )}
+</div>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="min-w-0 text-base font-semibold text-white sm:text-lg">
-                            <span className="block truncate sm:max-w-[320px] md:max-w-[420px] lg:max-w-[520px] xl:max-w-none">
-                              FLUX Creator
-                            </span>
-                          </p>
+<div className="min-w-0 flex-1">
+  <div className="flex flex-wrap items-center gap-2">
+    <p className="min-w-0 text-base font-semibold text-white sm:text-lg">
+      <span className="block truncate sm:max-w-[320px] md:max-w-[420px] lg:max-w-[520px] xl:max-w-none">
+        {video.ownerId?.username ?? 'Unknown Studio'}
+      </span>
+    </p>
 
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
-                            <FiCheck className="text-[11px]" />
-                            Verified
-                          </span>
-                        </div>
+    {/* Studio badge — only for studio accounts */}
+    {video.ownerId?.accountType === 'studio' && (
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-sky-400/20 bg-sky-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-300">
+        <FiCheck className="text-[11px]" />
+        Studio
+      </span>
+    )}
+  </div>
 
-                        <p className="mt-1 text-sm leading-6 text-white/55">
-                          Uploaded on {formatFullDate(video.createdAt)}
-                        </p>
-                      </div>
+  <p className="mt-1 text-sm leading-6 text-white/55">
+    Uploaded on {formatFullDate(video.createdAt)}
+  </p>
+</div>
                     </div>
 
                     <div className="flex w-full flex-wrap items-center gap-3 xl:w-auto xl:max-w-[520px] xl:justify-end">
