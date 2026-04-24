@@ -10,6 +10,7 @@ import {
   FiGrid,
   FiLogOut,
   FiSearch,
+  FiSettings,
   FiSliders,
   FiUpload,
   FiUser,
@@ -39,7 +40,7 @@ const GENRES = [
 const NAV_ITEMS = [
   { label: 'Home', href: '/' },
   { label: 'Library', href: '/library' },
-  { label: 'Subscription', href: '/subscriptions' }, 
+  { label: 'Following', href: '/subscriptions' },
 ];
 
 export const Navbar = () => {
@@ -50,7 +51,6 @@ export const Navbar = () => {
 
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
-  // ✅ check if current user is a studio
   const isStudio = user?.accountType === 'studio';
 
   const [mounted, setMounted] = useState(false);
@@ -68,16 +68,10 @@ export const Navbar = () => {
     : '';
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
-
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 8);
-    };
-
+    const handleScroll = () => setIsScrolled(window.scrollY > 8);
     handleScroll();
     window.addEventListener('scroll', handleScroll);
-
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -88,7 +82,6 @@ export const Navbar = () => {
         setDropdownOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -96,7 +89,6 @@ export const Navbar = () => {
   useEffect(() => {
     const hydrateUser = async () => {
       if (!mounted || !isAuthenticated || user) return;
-
       try {
         const currentUser = await userService.getMe();
         dispatch(setUser(currentUser));
@@ -104,37 +96,24 @@ export const Navbar = () => {
         dispatch(logout());
       }
     };
-
     void hydrateUser();
   }, [mounted, isAuthenticated, user, dispatch]);
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     const query = searchQuery.trim();
     if (!query) return;
-
     const params = new URLSearchParams({ q: query });
-
-    if (activeGenre !== 'All') {
-      params.set('genre', activeGenre);
-    }
-
+    if (activeGenre !== 'All') params.set('genre', activeGenre);
     router.push(`/search?${params.toString()}`);
   };
 
   const handleGenreClick = (genre: string) => {
     setActiveGenre(genre);
-
     const query = searchQuery.trim();
     if (!query) return;
-
     const params = new URLSearchParams({ q: query });
-
-    if (genre !== 'All') {
-      params.set('genre', genre);
-    }
-
+    if (genre !== 'All') params.set('genre', genre);
     router.push(`/search?${params.toString()}`);
   };
 
@@ -142,10 +121,6 @@ export const Navbar = () => {
     setSearchQuery('');
     setActiveGenre('All');
     setFiltersOpen(false);
-  };
-
-  const toggleFilters = () => {
-    setFiltersOpen((prev) => !prev);
   };
 
   const handleLogout = () => {
@@ -168,6 +143,8 @@ export const Navbar = () => {
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-20 items-center justify-between gap-4">
+
+          {/* Left — Logo + Nav */}
           <div className="flex min-w-0 items-center gap-8">
             <Link href="/" className="flex shrink-0 items-center gap-3">
               <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] shadow-[0_0_30px_rgba(255,255,255,0.06)]">
@@ -180,7 +157,6 @@ export const Navbar = () => {
                   priority
                 />
               </div>
-
               <span className="bg-gradient-to-r from-white via-sky-200 to-blue-400 bg-clip-text text-xl font-black tracking-[0.18em] text-transparent">
                 FLUX
               </span>
@@ -189,7 +165,6 @@ export const Navbar = () => {
             <nav className="hidden items-center gap-1 md:flex">
               {NAV_ITEMS.map((item) => {
                 const isActive = pathname === item.href;
-
                 return (
                   <Link
                     key={item.href}
@@ -201,7 +176,6 @@ export const Navbar = () => {
                     }`}
                   >
                     {item.label}
-
                     {isActive && mounted && (
                       <motion.span
                         layoutId="navbar-active-pill"
@@ -215,7 +189,10 @@ export const Navbar = () => {
             </nav>
           </div>
 
+          {/* Right — Search + Actions */}
           <div className="flex min-w-0 items-center justify-end gap-2 sm:gap-3">
+
+            {/* Search */}
             <form
               onSubmit={handleSearch}
               className={`hidden items-center transition-all duration-300 md:flex ${
@@ -224,7 +201,6 @@ export const Navbar = () => {
             >
               <div className="relative w-full">
                 <FiSearch className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/35" />
-
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
@@ -233,7 +209,6 @@ export const Navbar = () => {
                   onFocus={() => setSearchFocused(true)}
                   onBlur={() => setSearchFocused(false)}
                 />
-
                 {searchQuery && (
                   <button
                     type="button"
@@ -243,10 +218,9 @@ export const Navbar = () => {
                     <FiX className="h-4 w-4" />
                   </button>
                 )}
-
                 <button
                   type="button"
-                  onClick={toggleFilters}
+                  onClick={() => setFiltersOpen((prev) => !prev)}
                   className={`absolute right-2 top-1/2 inline-flex -translate-y-1/2 items-center gap-2 rounded-full px-2.5 py-1.5 text-xs font-medium transition-all ${
                     filtersOpen || hasActiveFilter
                       ? 'bg-sky-400/15 text-sky-200'
@@ -259,7 +233,7 @@ export const Navbar = () => {
               </div>
             </form>
 
-            {/* ✅ Upload button — only visible to studio accounts */}
+            {/* Upload — studios only */}
             {mounted && isAuthenticated && isStudio && (
               <Link
                 href="/upload"
@@ -270,6 +244,7 @@ export const Navbar = () => {
               </Link>
             )}
 
+            {/* Bell */}
             <button
               type="button"
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/65 transition hover:bg-white/[0.1] hover:text-white"
@@ -277,6 +252,7 @@ export const Navbar = () => {
               <FiBell className="h-4 w-4" />
             </button>
 
+            {/* Avatar + Dropdown */}
             <div ref={dropdownRef} className="relative">
               <button
                 type="button"
@@ -313,6 +289,7 @@ export const Navbar = () => {
                   >
                     {mounted && isAuthenticated ? (
                       <>
+                        {/* User info header */}
                         <div className="border-b border-white/8 px-5 py-4">
                           <div className="flex items-center gap-3">
                             <div className="relative h-12 w-12 overflow-hidden rounded-full border border-white/10 bg-white/[0.05]">
@@ -330,13 +307,11 @@ export const Navbar = () => {
                                 </div>
                               )}
                             </div>
-
                             <div className="min-w-0">
                               <p className="truncate text-sm font-semibold text-white">
                                 {user?.username}
                               </p>
                               <p className="truncate text-xs text-white/45">{user?.email}</p>
-                              {/* ✅ show account type badge */}
                               {isStudio && (
                                 <span className="mt-0.5 inline-block rounded-full bg-sky-400/15 px-2 py-0.5 text-[10px] font-medium text-sky-300">
                                   Studio
@@ -346,6 +321,7 @@ export const Navbar = () => {
                           </div>
                         </div>
 
+                        {/* Menu items */}
                         <div className="p-2">
                           <Link
                             href="/dashboard"
@@ -356,7 +332,17 @@ export const Navbar = () => {
                             Dashboard
                           </Link>
 
-                          {/* ✅ Upload Video — only visible to studio accounts */}
+                          {/* ✅ Settings */}
+                          <Link
+                            href="/settings"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+                          >
+                            <FiSettings className="h-4 w-4" />
+                            Settings
+                          </Link>
+
+                          {/* Upload — studios only */}
                           {isStudio && (
                             <Link
                               href="/upload"
@@ -388,7 +374,6 @@ export const Navbar = () => {
                           <FiUser className="h-4 w-4" />
                           Sign In
                         </Link>
-
                         <Link
                           href="/register"
                           onClick={() => setDropdownOpen(false)}
@@ -406,6 +391,7 @@ export const Navbar = () => {
           </div>
         </div>
 
+        {/* Genre filter bar */}
         <AnimatePresence>
           {filtersOpen && (
             <motion.div
@@ -419,7 +405,6 @@ export const Navbar = () => {
                 <div className="flex min-w-max items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-2 backdrop-blur-2xl">
                   {GENRES.map((genre) => {
                     const isActive = activeGenre === genre;
-
                     return (
                       <motion.button
                         key={genre}

@@ -3,11 +3,14 @@ import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserService } from './user.service';
 import { UpdateAvatarDto } from './dto/update-avatar.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto'; // ✅ added
 
 type AuthenticatedRequest = Request & {
   user: {
     userId: string;
     email: string;
+    username: string;
+    accountType: string;
   };
 };
 
@@ -25,5 +28,15 @@ export class UserController {
   @Patch('me/avatar')
   updateAvatar(@Req() req: AuthenticatedRequest, @Body() dto: UpdateAvatarDto) {
     return this.userService.updateAvatar(req.user.userId, dto.avatar);
+  }
+
+  // ✅ new endpoint
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/profile')
+  updateProfile(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.userService.updateProfile(req.user.userId, dto);
   }
 }
