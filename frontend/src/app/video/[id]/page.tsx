@@ -314,7 +314,7 @@ export default function WatchPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isfollowed, setIsFollowed] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -468,11 +468,11 @@ export default function WatchPage() {
 
                     <div className="flex w-full flex-wrap items-center gap-3 xl:w-auto xl:max-w-[520px] xl:justify-end">
                       <ActionButton
-                        icon={isSubscribed ? <FiCheck /> : <FiPlus />}
-                        label={isSubscribed ? 'Subscribed' : 'Subscribe'}
-                        primary={!isSubscribed}
-                        active={isSubscribed}
-                        onClick={() => setIsSubscribed((prev) => !prev)}
+                        icon={isfollowed ? <FiCheck /> : <FiPlus />}
+              label={isfollowed ? 'followed' : 'follow'}
+                        primary={!isfollowed}
+                        active={isfollowed}
+                        onClick={() => setIsFollowed((prev) => !prev)}
                       />
                       <ActionButton
                         icon={<FiHeart />}

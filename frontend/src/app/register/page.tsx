@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FiMail, FiLock, FiUser, FiCamera } from 'react-icons/fi';
+import { FiMail, FiLock, FiUser, FiCamera, FiVideo } from 'react-icons/fi'; // ✅ added FiVideo
 import { z } from 'zod';
 import { useAuth } from '@/features/auth/useAuth';
 import { uploadService } from '@/services/upload.service';
@@ -26,6 +26,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState('');
+  const [accountType, setAccountType] = useState<'user' | 'studio'>('user'); // ✅ moved inside component
 
   const {
     register,
@@ -52,11 +53,7 @@ export default function RegisterPage() {
 
       if (avatarFile) {
         const uploadRes = await uploadService.uploadThumbnail(avatarFile);
-        console.log('uploadRes:', uploadRes);
-
-avatar = uploadRes.path || uploadRes.thumbnailUrl || uploadRes.url || '';
-
-console.log('avatar sent to register:', avatar);
+        avatar = uploadRes.path || uploadRes.thumbnailUrl || uploadRes.url || '';
       }
 
       await registerUser({
@@ -64,6 +61,7 @@ console.log('avatar sent to register:', avatar);
         email: data.email,
         password: data.password,
         avatar,
+        accountType, // ✅ passed to registerUser
       });
     } finally {
       setIsLoading(false);
@@ -77,6 +75,7 @@ console.log('avatar sent to register:', avatar);
         <p className="text-white/50 mb-8">Join FLUX and start streaming.</p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {/* Avatar */}
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
               <div className="h-24 w-24 overflow-hidden rounded-full border border-white/15 bg-white/5">
@@ -104,10 +103,47 @@ console.log('avatar sent to register:', avatar);
                 />
               </label>
             </div>
-
             <p className="text-sm text-white/50">Add a profile picture</p>
           </div>
 
+          {/* Account Type Toggle */}
+          <div>
+            <label className="mb-2 block text-sm text-white/70">Account Type</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setAccountType('user')}
+                className={`flex items-center justify-center gap-2 rounded-lg border py-3 text-sm font-medium transition-all ${
+                  accountType === 'user'
+                    ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+                    : 'border-white/10 bg-white/5 text-white/50 hover:border-white/20 hover:text-white/70'
+                }`}
+              >
+                <FiUser className="h-4 w-4" />
+                Viewer
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAccountType('studio')}
+                className={`flex items-center justify-center gap-2 rounded-lg border py-3 text-sm font-medium transition-all ${
+                  accountType === 'studio'
+                    ? 'border-sky-500 bg-sky-500/10 text-sky-400'
+                    : 'border-white/10 bg-white/5 text-white/50 hover:border-white/20 hover:text-white/70'
+                }`}
+              >
+                <FiVideo className="h-4 w-4" />
+                Studio
+              </button>
+            </div>
+            <p className="mt-1.5 text-xs text-white/35">
+              {accountType === 'studio'
+                ? 'Studio accounts can upload films and TV shows.'
+                : 'Viewer accounts can watch and follow studios.'}
+            </p>
+          </div>
+
+          {/* Username */}
           <div>
             <label className="mb-2 block text-sm text-white/70">Username</label>
             <div className="flex items-center rounded-lg border border-white/10 bg-white/5 px-3">
@@ -123,6 +159,7 @@ console.log('avatar sent to register:', avatar);
             )}
           </div>
 
+          {/* Email */}
           <div>
             <label className="mb-2 block text-sm text-white/70">Email</label>
             <div className="flex items-center rounded-lg border border-white/10 bg-white/5 px-3">
@@ -139,6 +176,7 @@ console.log('avatar sent to register:', avatar);
             )}
           </div>
 
+          {/* Password */}
           <div>
             <label className="mb-2 block text-sm text-white/70">Password</label>
             <div className="flex items-center rounded-lg border border-white/10 bg-white/5 px-3">
@@ -155,6 +193,7 @@ console.log('avatar sent to register:', avatar);
             )}
           </div>
 
+          {/* Confirm Password */}
           <div>
             <label className="mb-2 block text-sm text-white/70">Confirm Password</label>
             <div className="flex items-center rounded-lg border border-white/10 bg-white/5 px-3">

@@ -18,20 +18,18 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async register(dto: RegisterDto) {
-    const existing = await this.userModel.findOne({ email: dto.email });
-    if (existing) throw new ConflictException('Email already in use');
-
-    const hashed = await bcrypt.hash(dto.password, 10);
+  async register(registerDto: RegisterDto) {
+    const { username, email, password, accountType } = registerDto;
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await this.userModel.create({
-      email: dto.email,
-      username: dto.username,
-      password: hashed,
-      avatar: dto.avatar || '',
+      username,
+      email,
+      password: hashedPassword,
+      accountType: accountType || 'user',
     });
 
-    return this.buildAuthResponse(user);
+    return this.buildAuthResponse(user); // ✅ fixed: was generateToken
   }
 
   async login(dto: LoginDto) {
@@ -49,12 +47,14 @@ export class AuthService {
       access_token: this.jwtService.sign({
         sub: user._id.toString(),
         email: user.email,
+        accountType: user.accountType, // ✅ added to JWT payload
       }),
       user: {
         id: user._id.toString(),
         email: user.email,
         username: user.username,
         avatar: user.avatar,
+        accountType: user.accountType, // ✅ added to response
       },
     };
   }

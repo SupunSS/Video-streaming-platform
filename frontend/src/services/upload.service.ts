@@ -23,7 +23,11 @@ export const uploadService = {
     return res.data;
   },
 
-  async uploadThumbnail(file: File): Promise<{ url: string }> {
+  async uploadThumbnail(file: File): Promise<{
+    thumbnailUrl: any;
+    path: any;
+    url: string;
+  }> {
     const formData = new FormData();
     formData.append("file", file);
     const res = await axiosInstance.post(

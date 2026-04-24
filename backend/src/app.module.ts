@@ -5,6 +5,7 @@ import { VideoModule } from './modules/video/video.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { UserModule } from './modules/user/user.module';
+import { FollowsModule } from './modules/follows/follows.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UserModule } from './modules/user/user.module';
     AuthModule,
     UploadModule,
     UserModule,
+    FollowsModule,
   ],
 })
 export class AppModule {}

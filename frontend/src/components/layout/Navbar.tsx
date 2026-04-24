@@ -1,4 +1,3 @@
-// frontend/src/components/layout/Navbar.tsx
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -40,7 +39,7 @@ const GENRES = [
 const NAV_ITEMS = [
   { label: 'Home', href: '/' },
   { label: 'Library', href: '/library' },
-  { label: 'Subscriptions', href: '/subscriptions' },
+  { label: 'Subscription', href: '/subscriptions' }, 
 ];
 
 export const Navbar = () => {
@@ -50,6 +49,9 @@ export const Navbar = () => {
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+
+  // ✅ check if current user is a studio
+  const isStudio = user?.accountType === 'studio';
 
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -257,13 +259,16 @@ export const Navbar = () => {
               </div>
             </form>
 
-            <Link
-              href="/upload"
-              className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/[0.1] hover:text-white sm:inline-flex"
-            >
-              <FiUpload className="h-4 w-4" />
-              Upload
-            </Link>
+            {/* ✅ Upload button — only visible to studio accounts */}
+            {mounted && isAuthenticated && isStudio && (
+              <Link
+                href="/upload"
+                className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/[0.1] hover:text-white sm:inline-flex"
+              >
+                <FiUpload className="h-4 w-4" />
+                Upload
+              </Link>
+            )}
 
             <button
               type="button"
@@ -331,6 +336,12 @@ export const Navbar = () => {
                                 {user?.username}
                               </p>
                               <p className="truncate text-xs text-white/45">{user?.email}</p>
+                              {/* ✅ show account type badge */}
+                              {isStudio && (
+                                <span className="mt-0.5 inline-block rounded-full bg-sky-400/15 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                                  Studio
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -345,14 +356,17 @@ export const Navbar = () => {
                             Dashboard
                           </Link>
 
-                          <Link
-                            href="/upload"
-                            onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
-                          >
-                            <FiUpload className="h-4 w-4" />
-                            Upload Video
-                          </Link>
+                          {/* ✅ Upload Video — only visible to studio accounts */}
+                          {isStudio && (
+                            <Link
+                              href="/upload"
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+                            >
+                              <FiUpload className="h-4 w-4" />
+                              Upload Video
+                            </Link>
+                          )}
 
                           <button
                             type="button"
