@@ -40,7 +40,7 @@ const GENRES = [
 const NAV_ITEMS = [
   { label: 'Home', href: '/' },
   { label: 'Library', href: '/library' },
-  { label: 'Following', href: '/subscriptions' },
+  { label: 'Subscriptions', href: '/subscriptions' },
 ];
 
 export const Navbar = () => {

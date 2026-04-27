@@ -6,6 +6,23 @@ import { videoService, CreateVideoPayload } from "@/services/video.service";
 import { useRouter } from "next/navigation";
 import { notify } from "@/components/ui/CustomToast";
 
+type UploadMetadata = {
+  title: string;
+  description?: string;
+  tags?: string[];
+  type?: "movie" | "tv_show";
+  genres?: string[];
+  categories?: string[];
+  language?: string;
+  ageRating?: string;
+  releaseYear?: number;
+  isFeatured?: boolean;
+  seriesTitle?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  episodeTitle?: string;
+};
+
 export const useUpload = () => {
   const router = useRouter();
   const [videoProgress, setVideoProgress] = useState(0);
@@ -16,17 +33,17 @@ export const useUpload = () => {
 
   const upload = async (
     videoFile: File,
-    thumbnailFile: File | null, // 16:9 landscape
-    posterFile: File | null, // 2:3 portrait
-    metadata: { title: string; description?: string },
+    thumbnailFile: File | null,
+    posterFile: File | null,
+    metadata: UploadMetadata,
   ) => {
-    if (!videoFile || !metadata.title) return;
+    if (!videoFile || !metadata.title?.trim()) return;
 
     setIsUploading(true);
     setStatus("uploading");
+    setVideoProgress(0);
 
     try {
-      // 1. Upload video file
       const { url: videoUrl } = await uploadService.uploadVideo(
         videoFile,
         (percent) => {
@@ -34,14 +51,12 @@ export const useUpload = () => {
         },
       );
 
-      // 2. Upload landscape thumbnail (16:9) if provided
       let thumbnailUrl = "/uploads/thumbnails/default.jpg";
       if (thumbnailFile) {
         const { url } = await uploadService.uploadThumbnail(thumbnailFile);
         thumbnailUrl = url;
       }
 
-      // 3. Upload portrait poster (2:3) if provided
       let posterUrl = "";
       if (posterFile) {
         const { url } = await uploadService.uploadPoster(posterFile);
@@ -50,27 +65,40 @@ export const useUpload = () => {
 
       setStatus("processing");
 
-      // 4. Save metadata to DB
       const payload: CreateVideoPayload = {
-        title: metadata.title,
-        description: metadata.description,
+        title: metadata.title.trim(),
+        description: metadata.description?.trim() ?? "",
         videoUrl,
         thumbnailUrl,
-        posterUrl: posterUrl || thumbnailUrl, // fallback to thumbnail if no poster
+        posterUrl: posterUrl || thumbnailUrl,
+        tags: metadata.tags ?? [],
+        type: metadata.type ?? "movie",
+        genres: metadata.genres ?? [],
+        categories: metadata.categories ?? [],
+        language: metadata.language?.trim() ?? "",
+        ageRating: metadata.ageRating?.trim() ?? "",
+        releaseYear: metadata.releaseYear,
+        isFeatured: Boolean(metadata.isFeatured),
+        seriesTitle: metadata.seriesTitle?.trim() ?? "",
+        seasonNumber: metadata.seasonNumber,
+        episodeNumber: metadata.episodeNumber,
+        episodeTitle: metadata.episodeTitle?.trim() ?? "",
       };
 
       await videoService.create(payload);
 
       setStatus("complete");
+      setVideoProgress(100);
       notify.success("Video uploaded successfully!");
 
       setTimeout(() => {
         router.push("/");
       }, 1500);
     } catch (err: any) {
-      const message = err.response?.data?.message || "Upload failed";
+      const message = err?.response?.data?.message || "Upload failed";
       notify.error(message);
       setStatus("idle");
+      setVideoProgress(0);
     } finally {
       setIsUploading(false);
     }

@@ -1,71 +1,51 @@
 import {
   Body,
   Controller,
-  Get,
-  Param,
-  Patch,
   Post,
   Req,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { Request } from 'express';
-
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { StudioGuard } from '../auth/guards/studio.guard';
 import { CreateVideoDto } from './dto/create-video.dto';
-import { RateVideoDto } from './dto/rate-video.dto';
-import { VideoService } from './video.service';
-
-type AuthenticatedRequest = Request & {
-  user: {
-    userId: string;
-    email: string;
-    username: string; // ✅ added
-    accountType: string;
-  };
-};
+import { VideosService } from './video.service';
 
 @Controller('videos')
-export class VideoController {
-  constructor(private readonly videoService: VideoService) {}
-
-  @UseGuards(JwtAuthGuard, StudioGuard)
-  @Post()
-  create(
-    @Body() createVideoDto: CreateVideoDto,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    return this.videoService.create(createVideoDto, req.user); // req.user now includes username
-  }
-
-  @Get()
-  findAll() {
-    return this.videoService.findAll();
-  }
+export class VideosController {
+  constructor(private readonly videosService: VideosService) {}
 
   @UseGuards(JwtAuthGuard)
-  @Get('me')
-  findMyVideos(@Req() req: AuthenticatedRequest) {
-    return this.videoService.findMyVideos(req.user.userId);
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.videoService.findOne(id);
-  }
-
-  @Patch(':id/views')
-  incrementViews(@Param('id') id: string) {
-    return this.videoService.incrementViews(id);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Patch(':id/rating')
-  rateVideo(
-    @Param('id') id: string,
-    @Body() rateVideoDto: RateVideoDto,
-    @Req() req: AuthenticatedRequest,
+  @Post('upload')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'video', maxCount: 1 },
+      { name: 'thumbnail', maxCount: 1 },
+    ]),
+  )
+  async uploadVideo(
+    @UploadedFiles()
+    files: {
+      video?: Express.Multer.File[];
+      thumbnail?: Express.Multer.File[];
+    },
+    @Body() dto: CreateVideoDto,
+    @Req() req: { user: { userId: string } },
   ) {
-    return this.videoService.rateVideo(id, req.user.userId, rateVideoDto.value);
+    const videoFile = files.video?.[0];
+    const thumbnailFile = files.thumbnail?.[0];
+
+    const videoUrl = videoFile ? `/uploads/videos/${videoFile.filename}` : '';
+    const thumbnailUrl = thumbnailFile
+      ? `/uploads/thumbnails/${thumbnailFile.filename}`
+      : '';
+
+    return this.videosService.createVideo({
+      dto,
+      ownerId: req.user.userId,
+      videoUrl,
+      thumbnailUrl,
+    });
   }
 }

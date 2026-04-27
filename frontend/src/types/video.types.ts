@@ -1,24 +1,49 @@
-// src/types/video.types.ts
+export interface VideoUser {
+  username: string;
+  avatar?: string;
+}
+
 export interface Video {
-  createdAt?: string;
+  _id?: string;
   id: string;
   title: string;
   description?: string;
-  thumbnail: string;
-  duration: number;
-  views: number;
-  channel: string;
-  uploadedAt?: string;
-  status?: "processing" | "ready" | "failed";
+
+  videoUrl?: string;
   hlsUrl?: string;
-  user?: {
-    username: string;
-    avatar?: string;
-  };
-  // Optional metadata for UI enhancements
-  rating?: number;
+
+  thumbnail: string;
+  thumbnailUrl?: string;
+  posterUrl?: string;
+
+  type?: "movie" | "tv_show";
+  genres?: string[];
+  categories?: string[];
+  language?: string;
+  ageRating?: string;
+  releaseYear?: number;
+  isFeatured?: boolean;
+
+  seriesTitle?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  episodeTitle?: string;
+
+  duration?: number;
+  views?: number;
+  channel?: string;
+
+  createdAt?: string;
+  updatedAt?: string;
+  uploadedAt?: string;
+
+  status?: "processing" | "ready" | "failed";
+
+  user?: VideoUser;
+
+  rating?: number | string | null;
   isNew?: boolean;
   progress?: number;
   genre?: string;
-  year?: number;
+  year?: number | string;
 }
