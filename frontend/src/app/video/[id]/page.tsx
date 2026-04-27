@@ -22,7 +22,7 @@ import { notify } from "@/components/ui/CustomToast";
 
 import { Navbar } from '@/components/layout/Navbar';
 import { CommentSection } from '@/components/video/CommentSection';
-import { VideoPlayer } from '@/components/video/VideoPlayer';
+import VideoPlayer from '@/components/video/VideoPlayer';
 import { API_CONFIG } from '@/config/api.config';
 import { videoService, VideoResponse } from '@/services/video.service';
 import axiosInstance from '@/lib/axios';

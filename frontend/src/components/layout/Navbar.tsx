@@ -149,13 +149,12 @@ export const Navbar = () => {
             <Link href="/" className="flex shrink-0 items-center gap-3">
               <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] shadow-[0_0_30px_rgba(255,255,255,0.06)]">
                 <Image
-                  src="/images/Flux_Logo.png"
-                  alt="Flux Logo"
-                  width={28}
-                  height={28}
-                  className="object-contain"
-                  priority
-                />
+  src="/images/Flux_Logo.png"
+  alt="Logo"
+  width={120}
+  height={40}
+  className="h-10 w-auto"
+/>
               </div>
               <span className="bg-gradient-to-r from-white via-sky-200 to-blue-400 bg-clip-text text-xl font-black tracking-[0.18em] text-transparent">
                 FLUX
