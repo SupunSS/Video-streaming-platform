@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -25,7 +26,6 @@ import { CommentSection } from '@/components/video/CommentSection';
 import VideoPlayer from '@/components/video/VideoPlayer';
 import { API_CONFIG } from '@/config/api.config';
 import { videoService, VideoResponse } from '@/services/video.service';
-import axiosInstance from '@/lib/axios';
 
 const BASE_URL = API_CONFIG.BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -188,10 +188,13 @@ function RecommendationCard({
         >
           <div className="relative aspect-video overflow-hidden">
             {thumbnail ? (
-              <img
+              <Image
                 src={thumbnail}
                 alt={video.title}
-                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                fill
+                sizes="(min-width: 1280px) 380px, 100vw"
+                unoptimized
+                className="object-cover transition duration-500 group-hover:scale-105"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-white/[0.04] text-white/35">
@@ -238,10 +241,13 @@ function RecommendationCard({
       >
         <div className="relative aspect-video w-40 shrink-0 overflow-hidden rounded-xl bg-white/[0.04]">
           {thumbnail ? (
-            <img
+            <Image
               src={thumbnail}
               alt={video.title}
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              fill
+              sizes="160px"
+              unoptimized
+              className="object-cover transition duration-500 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-white/35">
@@ -332,13 +338,23 @@ export default function WatchPage() {
         setLoading(true);
         setError(false);
 
-        const [videoData, allData] = await Promise.all([
+        const token =
+          typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+        const ratingRequest = token
+          ? videoService
+              .getMyRating(videoId)
+              .catch((): { value: number | null } => ({ value: null }))
+          : Promise.resolve({ value: null });
+
+        const [videoData, allData, ratingData] = await Promise.all([
           videoService.getOne(videoId),
           videoService.getAll(),
+          ratingRequest,
         ]);
 
         setVideo(videoData);
         setAllVideos(allData);
+        setUserRating(videoData.myRating ?? ratingData.value);
 
         videoService.incrementViews(videoId).catch(() => undefined);
       } catch (loadError) {
@@ -381,16 +397,11 @@ export default function WatchPage() {
   try {
     setSubmittingRating(true);
 
-    const res = await axiosInstance.patch(
-      API_CONFIG.ENDPOINTS.VIDEOS.RATE(videoId),
-      { value },
-    );
-
-    const updatedVideo = res.data as VideoResponse;
+    const updatedVideo = await videoService.rate(videoId, value);
 
     setVideo(updatedVideo);
-    setUserRating(value);
-   notify.success(`You rated this title ${value}/10`);
+    setUserRating(updatedVideo.myRating ?? value);
+   notify.success(`Your rating is now ${value}/10`);
   } catch (rateError) {
     console.error('Failed to submit rating:', rateError);
     notify.error('Failed to submit rating');
@@ -444,12 +455,15 @@ export default function WatchPage() {
                 <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.045] p-5 backdrop-blur-2xl">
                   <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
                     <div className="flex min-w-0 flex-1 items-center gap-4">
-                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
   {video.ownerId?.avatar ? (
-    <img
+    <Image
       src={buildUrl(video.ownerId.avatar)}
       alt={video.ownerId.username}
-      className="h-full w-full object-cover"
+      fill
+      sizes="56px"
+      unoptimized
+      className="object-cover"
     />
   ) : (
     <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-400 to-amber-600 text-lg font-bold text-black">

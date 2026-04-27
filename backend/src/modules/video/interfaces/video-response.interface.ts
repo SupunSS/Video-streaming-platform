@@ -4,6 +4,8 @@ export interface VideoResponse {
   description: string;
   videoUrl: string;
   thumbnailUrl: string;
+  posterUrl: string;
+  tags: string[];
   type: 'movie' | 'tv_show';
   genres: string[];
   categories: string[];
@@ -13,6 +15,9 @@ export interface VideoResponse {
   isFeatured: boolean;
   isPublished: boolean;
   views: number;
+  ratingsCount: number;
+  averageRating: number;
+  myRating?: number | null;
   seriesTitle?: string;
   seasonNumber?: number;
   episodeNumber?: number;

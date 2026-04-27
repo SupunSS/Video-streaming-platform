@@ -6,6 +6,7 @@ export interface AuthUser {
   email: string;
   username: string;
   avatar: string;
+  accountType?: "user" | "studio";
 }
 
 export interface AuthResponse {
@@ -18,6 +19,7 @@ export interface RegisterPayload {
   email: string;
   password: string;
   avatar?: string;
+  accountType?: "user" | "studio";
 }
 
 export interface LoginPayload {

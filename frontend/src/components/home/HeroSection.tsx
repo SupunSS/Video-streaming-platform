@@ -19,6 +19,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
   const { scrollY } = useScroll();
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
   const scale = useTransform(scrollY, [0, 300], [1, 0.9]);
+  const ratingLabel =
+    video.rating !== null && video.rating !== undefined && video.rating !== ''
+      ? video.rating
+      : 'No ratings yet';
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -87,7 +91,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="flex items-center justify-center gap-4 text-white/80 text-sm md:text-base"
           >
-            <span className="flex items-center gap-1"><span className="text-neon-cyan">★</span> {video.rating || '8.5'}</span>
+            <span className="flex items-center gap-1"><span className="text-neon-cyan">★</span> {ratingLabel}</span>
             <span>•</span>
             <span>{video.year || '2024'}</span>
             <span>•</span>

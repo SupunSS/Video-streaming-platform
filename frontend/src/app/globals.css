@@ -123,6 +123,11 @@
   .input-glass::placeholder {
     color: color-mix(in srgb, white 40%, transparent);
   }
+
+  .input-glass option {
+    background: var(--color-dark-400);
+    color: var(--color-white);
+  }
   
   .input-glass:focus {
     outline: none;

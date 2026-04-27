@@ -42,6 +42,9 @@ export interface Video {
   user?: VideoUser;
 
   rating?: number | string | null;
+  ratingsCount?: number;
+  averageRating?: number;
+  myRating?: number | null;
   isNew?: boolean;
   progress?: number;
   genre?: string;

@@ -3,12 +3,17 @@ import { HydratedDocument, Types } from 'mongoose';
 
 export type VideoDocument = HydratedDocument<Video>;
 
+export type VideoRating = {
+  userId: Types.ObjectId;
+  value: number;
+};
+
 @Schema({ timestamps: true })
 export class Video {
   @Prop({ required: true, trim: true })
   title: string;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ trim: true, default: '' })
   description: string;
 
   @Prop({ required: true })
@@ -16,6 +21,12 @@ export class Video {
 
   @Prop({ required: true })
   thumbnailUrl: string;
+
+  @Prop({ trim: true, default: '' })
+  posterUrl: string;
+
+  @Prop({ type: [String], default: [] })
+  tags: string[];
 
   @Prop({ required: true, enum: ['movie', 'tv_show'], default: 'movie' })
   type: 'movie' | 'tv_show';
@@ -43,6 +54,24 @@ export class Video {
 
   @Prop({ default: 0 })
   views: number;
+
+  @Prop({ default: 0 })
+  ratingsCount: number;
+
+  @Prop({ default: 0 })
+  averageRating: number;
+
+  @Prop({
+    type: [
+      {
+        _id: false,
+        userId: { type: Types.ObjectId, ref: 'User', required: true },
+        value: { type: Number, required: true, min: 1, max: 10 },
+      },
+    ],
+    default: [],
+  })
+  ratings: VideoRating[];
 
   @Prop({ trim: true, default: '' })
   seriesTitle?: string;

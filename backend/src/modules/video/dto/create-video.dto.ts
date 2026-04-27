@@ -13,14 +13,39 @@ import {
   ValidateIf,
 } from 'class-validator';
 
+type CreateVideoTypeTarget = {
+  type?: 'movie' | 'tv_show';
+};
+
+const isTvShow = (dto: CreateVideoTypeTarget): boolean =>
+  dto.type === 'tv_show';
+
 export class CreateVideoDto {
   @IsString()
   @IsNotEmpty()
   title: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  description: string;
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  videoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  thumbnailUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  posterUrl?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  tags?: string[];
 
   @IsEnum(['movie', 'tv_show'])
   type: 'movie' | 'tv_show';
@@ -57,22 +82,22 @@ export class CreateVideoDto {
   @IsBoolean()
   isFeatured?: boolean;
 
-  @ValidateIf((dto) => dto.type === 'tv_show')
+  @ValidateIf(isTvShow)
   @IsString()
   @IsNotEmpty()
   seriesTitle?: string;
 
-  @ValidateIf((dto) => dto.type === 'tv_show')
+  @ValidateIf(isTvShow)
   @IsInt()
   @Min(1)
   seasonNumber?: number;
 
-  @ValidateIf((dto) => dto.type === 'tv_show')
+  @ValidateIf(isTvShow)
   @IsInt()
   @Min(1)
   episodeNumber?: number;
 
-  @ValidateIf((dto) => dto.type === 'tv_show')
+  @ValidateIf(isTvShow)
   @IsString()
   @IsNotEmpty()
   episodeTitle?: string;

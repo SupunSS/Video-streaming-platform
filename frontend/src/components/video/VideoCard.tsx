@@ -73,6 +73,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
         alt={video.title}
         fill
         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+        unoptimized
         className={`absolute inset-0 object-cover transition-transform duration-500 ${
           showHoverDetails ? 'group-hover/card:scale-110' : ''
         }`}

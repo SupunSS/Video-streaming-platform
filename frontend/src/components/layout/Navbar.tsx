@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -43,6 +43,10 @@ const NAV_ITEMS = [
   { label: 'Subscriptions', href: '/subscriptions' },
 ];
 
+const subscribeToClient = () => () => undefined;
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
@@ -53,7 +57,11 @@ export const Navbar = () => {
 
   const isStudio = user?.accountType === 'studio';
 
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    subscribeToClient,
+    getClientSnapshot,
+    getServerSnapshot,
+  );
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,7 +76,6 @@ export const Navbar = () => {
     : '';
 
   useEffect(() => {
-    setMounted(true);
     const handleScroll = () => setIsScrolled(window.scrollY > 8);
     handleScroll();
     window.addEventListener('scroll', handleScroll);
@@ -153,7 +160,7 @@ export const Navbar = () => {
   alt="Logo"
   width={120}
   height={40}
-  className="h-10 w-auto"
+  className="h-10 w-auto object-contain"
 />
               </div>
               <span className="bg-gradient-to-r from-white via-sky-200 to-blue-400 bg-clip-text text-xl font-black tracking-[0.18em] text-transparent">

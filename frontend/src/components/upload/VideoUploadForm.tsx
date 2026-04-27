@@ -1,17 +1,20 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import {
   FiUploadCloud,
-  FiImage,
   FiX,
   FiCrop,
   FiFilm,
   FiTv,
   FiStar,
+  FiCalendar,
+  FiChevronLeft,
+  FiChevronRight,
 } from 'react-icons/fi';
 import { Navbar } from '@/components/layout/Navbar';
 import { useUpload } from '@/features/upload/useUpload';
@@ -65,6 +68,33 @@ const AGE_RATINGS = [
   'TV-MA',
 ] as const;
 
+const LANGUAGES = [
+  'English',
+  'Sinhala',
+  'Tamil',
+  'Hindi',
+  'Spanish',
+  'French',
+  'German',
+  'Japanese',
+  'Korean',
+  'Mandarin',
+  'Portuguese',
+  'Arabic',
+] as const;
+
+const MIN_RELEASE_YEAR = 1900;
+const MAX_RELEASE_YEAR = 3000;
+const YEAR_PAGE_SIZE = 12;
+
+const getYearRangeStart = (year: number) => {
+  const start = Math.floor(year / YEAR_PAGE_SIZE) * YEAR_PAGE_SIZE;
+  return Math.min(
+    Math.max(start, MIN_RELEASE_YEAR),
+    MAX_RELEASE_YEAR - YEAR_PAGE_SIZE + 1,
+  );
+};
+
 export default function UploadPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
@@ -93,6 +123,10 @@ export default function UploadPage() {
   const [language, setLanguage] = useState('');
   const [ageRating, setAgeRating] = useState('');
   const [releaseYear, setReleaseYear] = useState('');
+  const [yearPickerOpen, setYearPickerOpen] = useState(false);
+  const [yearRangeStart, setYearRangeStart] = useState(() =>
+    getYearRangeStart(new Date().getFullYear()),
+  );
   const [isFeatured, setIsFeatured] = useState(false);
 
   const [seriesTitle, setSeriesTitle] = useState('');
@@ -100,14 +134,12 @@ export default function UploadPage() {
   const [episodeNumber, setEpisodeNumber] = useState('');
   const [episodeTitle, setEpisodeTitle] = useState('');
 
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const checkingAuth = !isAuthenticated;
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace('/login');
-      return;
     }
-    setCheckingAuth(false);
   }, [isAuthenticated, router]);
 
   useEffect(() => {
@@ -118,6 +150,13 @@ export default function UploadPage() {
   }, [thumbnailPreview, posterPreview]);
 
   const isTvShow = useMemo(() => type === 'tv_show', [type]);
+  const visibleYears = useMemo(
+    () =>
+      Array.from({ length: YEAR_PAGE_SIZE }, (_, index) => yearRangeStart + index).filter(
+        (year) => year >= MIN_RELEASE_YEAR && year <= MAX_RELEASE_YEAR,
+      ),
+    [yearRangeStart],
+  );
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -281,21 +320,24 @@ export default function UploadPage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                {...getRootProps()}
-                className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer
-                  transition-all duration-300 ${
-                    isDragActive
-                      ? 'border-neon-cyan bg-neon-cyan/10'
-                      : 'border-white/20 hover:border-neon-cyan/50 hover:bg-glass-light'
-                  }`}
               >
-                <input {...getInputProps()} />
-                <FiUploadCloud className={`w-16 h-16 mx-auto mb-4 ${isDragActive ? 'text-neon-cyan' : 'text-white/40'}`} />
-                <h3 className="text-xl font-semibold mb-2">
-                  {isDragActive ? 'Drop your video here' : 'Drag & drop your video'}
-                </h3>
-                <p className="text-white/60 mb-4">or click to browse files</p>
-                <p className="text-sm text-white/40">Supported: MP4, MOV, AVI, MKV, WEBM (Max 2GB)</p>
+                <div
+                  {...getRootProps()}
+                  className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer
+                    transition-all duration-300 ${
+                      isDragActive
+                        ? 'border-neon-cyan bg-neon-cyan/10'
+                        : 'border-white/20 hover:border-neon-cyan/50 hover:bg-glass-light'
+                    }`}
+                >
+                  <input {...getInputProps()} />
+                  <FiUploadCloud className={`w-16 h-16 mx-auto mb-4 ${isDragActive ? 'text-neon-cyan' : 'text-white/40'}`} />
+                  <h3 className="text-xl font-semibold mb-2">
+                    {isDragActive ? 'Drop your video here' : 'Drag & drop your video'}
+                  </h3>
+                  <p className="text-white/60 mb-4">or click to browse files</p>
+                  <p className="text-sm text-white/40">Supported: MP4, MOV, AVI, MKV, WEBM (Max 2GB)</p>
+                </div>
               </motion.div>
             ) : (
               <motion.div
@@ -469,28 +511,111 @@ export default function UploadPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Release Year</label>
-                    <input
-                      type="number"
-                      min="1900"
-                      max="3000"
-                      value={releaseYear}
-                      onChange={(e) => setReleaseYear(e.target.value)}
-                      placeholder="2025"
-                      className="input-glass"
-                      disabled={isUploading}
-                    />
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setYearPickerOpen((prev) => !prev)}
+                        className="input-glass flex items-center justify-between gap-3 text-left disabled:opacity-50"
+                        disabled={isUploading}
+                      >
+                        <span className={releaseYear ? 'text-white' : 'text-white/40'}>
+                          {releaseYear || 'Select year'}
+                        </span>
+                        <FiCalendar className="h-4 w-4 shrink-0 text-white/45" />
+                      </button>
+
+                      {yearPickerOpen && !isUploading && (
+                        <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-xl border border-white/10 bg-[#0b0e1e] p-3 shadow-2xl">
+                          <div className="mb-3 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setYearRangeStart((start) =>
+                                  Math.max(start - YEAR_PAGE_SIZE, MIN_RELEASE_YEAR),
+                                )
+                              }
+                              disabled={yearRangeStart <= MIN_RELEASE_YEAR}
+                              className="rounded-lg border border-white/10 bg-white/[0.05] p-2 text-white/70 transition hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              <FiChevronLeft className="h-4 w-4" />
+                            </button>
+                            <span className="text-xs font-semibold text-white/70">
+                              {yearRangeStart} - {Math.min(yearRangeStart + YEAR_PAGE_SIZE - 1, MAX_RELEASE_YEAR)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setYearRangeStart((start) =>
+                                  Math.min(
+                                    start + YEAR_PAGE_SIZE,
+                                    MAX_RELEASE_YEAR - YEAR_PAGE_SIZE + 1,
+                                  ),
+                                )
+                              }
+                              disabled={yearRangeStart + YEAR_PAGE_SIZE > MAX_RELEASE_YEAR}
+                              className="rounded-lg border border-white/10 bg-white/[0.05] p-2 text-white/70 transition hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              <FiChevronRight className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2">
+                            {visibleYears.map((year) => {
+                              const yearValue = String(year);
+                              const selected = releaseYear === yearValue;
+
+                              return (
+                                <button
+                                  key={year}
+                                  type="button"
+                                  onClick={() => {
+                                    setReleaseYear(yearValue);
+                                    setYearPickerOpen(false);
+                                  }}
+                                  className={`rounded-lg border px-2 py-2 text-sm font-medium transition ${
+                                    selected
+                                      ? 'border-neon-cyan bg-neon-cyan/15 text-neon-cyan'
+                                      : 'border-white/10 bg-white/[0.04] text-white/70 hover:border-neon-cyan/40 hover:text-white'
+                                  }`}
+                                >
+                                  {year}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {releaseYear && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReleaseYear('');
+                                setYearPickerOpen(false);
+                              }}
+                              className="mt-3 w-full rounded-lg border border-white/10 bg-white/[0.04] py-2 text-xs text-white/55 transition hover:bg-white/[0.08] hover:text-white"
+                            >
+                              Clear year
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium mb-2">Language</label>
-                    <input
-                      type="text"
+                    <select
                       value={language}
                       onChange={(e) => setLanguage(e.target.value)}
-                      placeholder="English"
                       className="input-glass"
                       disabled={isUploading}
-                    />
+                    >
+                      <option value="">Select language</option>
+                      {LANGUAGES.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
@@ -600,7 +725,14 @@ export default function UploadPage() {
                       {thumbnailPreview ? (
                         <div className="flex flex-col items-start gap-2">
                           <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-amber-500/30">
-                            <img src={thumbnailPreview} alt="Thumbnail" className="w-full h-full object-cover" />
+                            <Image
+                              src={thumbnailPreview}
+                              alt="Thumbnail"
+                              fill
+                              sizes="(min-width: 640px) 50vw, 100vw"
+                              unoptimized
+                              className="object-cover"
+                            />
                             <label
                               htmlFor="thumbnail-upload"
                               className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 cursor-pointer"
@@ -651,7 +783,14 @@ export default function UploadPage() {
                             className="relative rounded-lg overflow-hidden border border-amber-500/30"
                             style={{ width: '120px', height: '180px' }}
                           >
-                            <img src={posterPreview} alt="Poster" className="w-full h-full object-cover" />
+                            <Image
+                              src={posterPreview}
+                              alt="Poster"
+                              fill
+                              sizes="120px"
+                              unoptimized
+                              className="object-cover"
+                            />
                             <label
                               htmlFor="poster-upload"
                               className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 cursor-pointer"

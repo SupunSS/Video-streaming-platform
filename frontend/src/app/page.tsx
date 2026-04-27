@@ -26,6 +26,8 @@ type RawVideo = {
   posterUrl?: string;
   duration?: number;
   views?: number;
+  ratingsCount?: number;
+  averageRating?: number;
   createdAt: string;
   videoUrl: string;
   user?: {
@@ -51,7 +53,10 @@ const mapToVideo = (video: RawVideo, index: number): Video => ({
   }),
   hlsUrl: buildUrl(video.videoUrl),
   status: 'ready',
-  rating: Number((8.1 + (index % 5) * 0.2).toFixed(1)),
+  rating:
+    (video.ratingsCount ?? 0) > 0 && typeof video.averageRating === 'number'
+      ? Number(video.averageRating.toFixed(1))
+      : null,
   year: 2024 - (index % 4),
   genre: ['Action', 'Thriller', 'Drama', 'Sci-Fi', 'Fantasy', 'Crime'][index % 6],
   progress: ((index + 2) * 11) % 85,

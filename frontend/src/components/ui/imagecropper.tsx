@@ -2,15 +2,9 @@
 
 import React, { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
+import type { Area, CropperProps, Point } from 'react-easy-crop';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiCheck, FiZoomIn, FiZoomOut } from 'react-icons/fi';
-
-interface CropArea {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
 
 interface Props {
   imageSrc: string;
@@ -20,7 +14,17 @@ interface Props {
   title?: string;
 }
 
-async function getCroppedImg(imageSrc: string, pixelCrop: CropArea, fileName: string): Promise<File> {
+type CropperComponentProps = Partial<CropperProps> & {
+  image: string;
+  crop: Point;
+  zoom: number;
+  aspect: number;
+  onCropChange: (location: Point) => void;
+};
+
+const CropperComponent = Cropper as unknown as React.ComponentType<CropperComponentProps>;
+
+async function getCroppedImg(imageSrc: string, pixelCrop: Area, fileName: string): Promise<File> {
   const image = new Image();
   image.src = imageSrc;
 
@@ -46,12 +50,12 @@ async function getCroppedImg(imageSrc: string, pixelCrop: CropArea, fileName: st
 }
 
 export function ImageCropper({ imageSrc, onComplete, onCancel, aspect = 2 / 3, title = 'Crop Image' }: Props) {
-  const [crop, setCrop]       = useState({ x: 0, y: 0 });
+  const [crop, setCrop]       = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom]       = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [processing, setProcessing] = useState(false);
 
-  const onCropComplete = useCallback((_: any, croppedPixels: CropArea) => {
+  const onCropComplete = useCallback((_croppedArea: Area, croppedPixels: Area) => {
     setCroppedAreaPixels(croppedPixels);
   }, []);
 
@@ -67,8 +71,6 @@ export function ImageCropper({ imageSrc, onComplete, onCancel, aspect = 2 / 3, t
       setProcessing(false);
     }
   };
-
-  const CropperComponent = Cropper as any;
 
   return (
     <AnimatePresence>

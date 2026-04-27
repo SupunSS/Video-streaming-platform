@@ -5,6 +5,7 @@ import { uploadService } from "@/services/upload.service";
 import { videoService, CreateVideoPayload } from "@/services/video.service";
 import { useRouter } from "next/navigation";
 import { notify } from "@/components/ui/CustomToast";
+import { getErrorMessage } from "@/lib/api-error";
 
 type UploadMetadata = {
   title: string;
@@ -94,8 +95,8 @@ export const useUpload = () => {
       setTimeout(() => {
         router.push("/");
       }, 1500);
-    } catch (err: any) {
-      const message = err?.response?.data?.message || "Upload failed";
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, "Upload failed");
       notify.error(message);
       setStatus("idle");
       setVideoProgress(0);

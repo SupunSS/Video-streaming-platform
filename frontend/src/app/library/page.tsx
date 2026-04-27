@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -64,12 +65,25 @@ function formatDuration(duration?: number): string {
   return `${duration}s`;
 }
 
+function getNumericRating(rating: Video['rating']): number {
+  if (typeof rating === 'number') {
+    return rating;
+  }
+
+  if (typeof rating === 'string') {
+    const parsed = Number(rating);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+}
+
 function normalizeVideo(video: Video, index: number): Video {
   return {
     ...video,
     genre: video.genre ?? genreFallbacks[index % genreFallbacks.length],
     year: video.year ?? 2024 - (index % 5),
-    rating: video.rating ?? Number((7.6 + (index % 6) * 0.3).toFixed(1)),
+    rating: video.rating ?? null,
     progress: video.progress ?? ((index * 17) % 82) + 12,
   };
 }
@@ -85,7 +99,7 @@ function sortVideos(videos: Video[], sortBy: SortKey): Video[] {
       return sorted.sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
 
     case 'rating':
-      return sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+      return sorted.sort((a, b) => getNumericRating(b.rating) - getNumericRating(a.rating));
 
     case 'recent':
     default:
@@ -225,7 +239,7 @@ export default function LibraryPage() {
     .slice(0, 10);
 
   const topRated = [...filteredVideos]
-    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+    .sort((a, b) => getNumericRating(b.rating) - getNumericRating(a.rating))
     .slice(0, 10);
 
   const trending = [...filteredVideos]
@@ -236,13 +250,16 @@ export default function LibraryPage() {
 
   const stats = useMemo(() => {
     const totalViews = filteredVideos.reduce((sum, video) => sum + (video.views ?? 0), 0);
+    const ratedVideos = filteredVideos.filter(
+      (video) => video.rating !== null && video.rating !== undefined,
+    );
     const avgRating =
-      filteredVideos.length > 0
+      ratedVideos.length > 0
         ? (
-            filteredVideos.reduce((sum, video) => sum + (video.rating ?? 0), 0) /
-            filteredVideos.length
+            ratedVideos.reduce((sum, video) => sum + getNumericRating(video.rating), 0) /
+            ratedVideos.length
           ).toFixed(1)
-        : '0.0';
+        : '—';
 
     return {
       count: filteredVideos.length,
@@ -316,10 +333,13 @@ export default function LibraryPage() {
 
               <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl">
                 <div className="relative aspect-[16/10]">
-                  <img
+                  <Image
                     src={featuredVideo.thumbnail}
                     alt={featuredVideo.title}
-                    className="h-full w-full object-cover"
+                    fill
+                    sizes="(min-width: 1024px) 45vw, 100vw"
+                    unoptimized
+                    className="object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
@@ -485,7 +505,7 @@ export default function LibraryPage() {
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredVideos.map((video, index) => (
+              {filteredVideos.map((video) => (
                 <VideoCard
   key={`grid-${video.id}`}
   video={video}

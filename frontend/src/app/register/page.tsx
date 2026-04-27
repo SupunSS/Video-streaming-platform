@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -115,12 +116,15 @@ export default function RegisterPage() {
           {/* Avatar */}
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
-              <div className="h-24 w-24 overflow-hidden rounded-full border border-white/15 bg-white/5">
+              <div className="relative h-24 w-24 overflow-hidden rounded-full border border-white/15 bg-white/5">
                 {avatarPreview ? (
-                  <img
+                  <Image
                     src={avatarPreview}
                     alt="Avatar preview"
-                    className="h-full w-full object-cover"
+                    fill
+                    sizes="96px"
+                    unoptimized
+                    className="object-cover"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-white/30">

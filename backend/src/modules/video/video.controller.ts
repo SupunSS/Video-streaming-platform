@@ -1,6 +1,10 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  Get,
+  Param,
+  Patch,
   Post,
   Req,
   UploadedFiles,
@@ -10,11 +14,56 @@ import {
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateVideoDto } from './dto/create-video.dto';
-import { VideosService } from './video.service';
+import { RateVideoDto } from './dto/rate-video.dto';
+import { VideoService } from './video.service';
+
+type AuthenticatedRequest = {
+  user: {
+    userId: string;
+  };
+};
 
 @Controller('videos')
-export class VideosController {
-  constructor(private readonly videosService: VideosService) {}
+export class VideoController {
+  constructor(private readonly videoService: VideoService) {}
+
+  @Get()
+  getAll() {
+    return this.videoService.getAll();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  getMyVideos(@Req() req: AuthenticatedRequest) {
+    return this.videoService.getMyVideos(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/my-rating')
+  getMyRating(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.videoService.getMyRating(id, req.user.userId);
+  }
+
+  @Get(':id')
+  getOne(@Param('id') id: string) {
+    return this.videoService.findOne(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post()
+  createVideo(@Body() dto: CreateVideoDto, @Req() req: AuthenticatedRequest) {
+    if (!dto.videoUrl) {
+      throw new BadRequestException('Video file URL is required');
+    }
+
+    return this.videoService.createVideo({
+      dto,
+      ownerId: req.user.userId,
+      videoUrl: dto.videoUrl,
+      thumbnailUrl: dto.thumbnailUrl || '/uploads/thumbnails/default.jpg',
+      posterUrl: dto.posterUrl,
+    });
+  }
 
   @UseGuards(JwtAuthGuard)
   @Post('upload')
@@ -31,7 +80,7 @@ export class VideosController {
       thumbnail?: Express.Multer.File[];
     },
     @Body() dto: CreateVideoDto,
-    @Req() req: { user: { userId: string } },
+    @Req() req: AuthenticatedRequest,
   ) {
     const videoFile = files.video?.[0];
     const thumbnailFile = files.thumbnail?.[0];
@@ -41,11 +90,27 @@ export class VideosController {
       ? `/uploads/thumbnails/${thumbnailFile.filename}`
       : '';
 
-    return this.videosService.createVideo({
+    return this.videoService.createVideo({
       dto,
       ownerId: req.user.userId,
       videoUrl,
       thumbnailUrl,
+      posterUrl: dto.posterUrl,
     });
+  }
+
+  @Patch(':id/views')
+  incrementViews(@Param('id') id: string) {
+    return this.videoService.incrementViews(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/rating')
+  rateVideo(
+    @Param('id') id: string,
+    @Body() dto: RateVideoDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.videoService.rateVideo(id, req.user.userId, dto.value);
   }
 }

@@ -11,6 +11,7 @@ export const API_CONFIG = {
       ONE: (id: string) => `/videos/${id}`,
       VIEWS: (id: string) => `/videos/${id}/views`,
       RATE: (id: string) => `/videos/${id}/rating`,
+      MY_RATING: (id: string) => `/videos/${id}/my-rating`,
     },
     UPLOAD: {
       VIDEO: "/upload/video",

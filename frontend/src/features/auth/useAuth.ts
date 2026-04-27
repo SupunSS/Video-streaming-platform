@@ -9,6 +9,7 @@ import {
 } from "@/services/auth.service";
 import { useRouter } from "next/navigation";
 import { notify } from "@/components/ui/CustomToast";
+import { getErrorMessage } from "@/lib/api-error";
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
@@ -23,8 +24,8 @@ export const useAuth = () => {
       dispatch(setCredentials({ user: data.user, token: data.access_token }));
       notify.success("Welcome back!");
       router.push("/");
-    } catch (err: any) {
-      const message = err.response?.data?.message || "Invalid credentials";
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, "Invalid credentials");
       notify.error(message);
       throw err;
     }
@@ -36,8 +37,8 @@ export const useAuth = () => {
       dispatch(setCredentials({ user: data.user, token: data.access_token }));
       notify.success("Account created!");
       router.push("/");
-    } catch (err: any) {
-      const message = err.response?.data?.message || "Registration failed";
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, "Registration failed");
       notify.error(message);
       throw err;
     }

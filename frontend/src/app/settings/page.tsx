@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { FiUser, FiMail, FiCamera, FiCheck, FiLoader } from 'react-icons/fi';
+import { FiUser, FiMail, FiCamera, FiCheck } from 'react-icons/fi';
 import { Navbar } from '@/components/layout/Navbar';
 import { ImageCropper } from '@/components/ui/imagecropper';
 import { uploadService } from '@/services/upload.service';
@@ -12,6 +13,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setUser } from '@/store/slices/authSlice';
 import { notify } from '@/components/ui/CustomToast';
 import { API_CONFIG } from '@/config/api.config';
+import { getErrorMessage } from '@/lib/api-error';
 
 const BASE_URL = API_CONFIG.BASE_URL || 'http://localhost:3000';
 
@@ -26,11 +28,11 @@ export default function SettingsPage() {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
 
   // form state
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
+  const [usernameDraft, setUsernameDraft] = useState<string | null>(null);
+  const [emailDraft, setEmailDraft] = useState<string | null>(null);
 
   // avatar state
-  const [avatarPreview, setAvatarPreview] = useState('');
+  const [avatarPreviewDraft, setAvatarPreviewDraft] = useState<string | null>(null);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawAvatarSrc, setRawAvatarSrc] = useState<string | null>(null);
   const [croppedAvatarFile, setCroppedAvatarFile] = useState<File | null>(null);
@@ -43,14 +45,20 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace('/login');
-      return;
     }
-    if (user) {
-      setUsername(user.username ?? '');
-      setEmail(user.email ?? '');
-      setAvatarPreview(buildUrl(user.avatar));
-    }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewDraft) {
+        URL.revokeObjectURL(avatarPreviewDraft);
+      }
+    };
+  }, [avatarPreviewDraft]);
+
+  const username = usernameDraft ?? user?.username ?? '';
+  const email = emailDraft ?? user?.email ?? '';
+  const avatarPreview = avatarPreviewDraft ?? buildUrl(user?.avatar);
 
   // ── Avatar crop flow ──────────────────────────────────────
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +76,7 @@ export default function SettingsPage() {
 
   const handleCropComplete = (croppedFile: File) => {
     setCroppedAvatarFile(croppedFile);
-    setAvatarPreview(URL.createObjectURL(croppedFile));
+    setAvatarPreviewDraft(URL.createObjectURL(croppedFile));
     setCropperOpen(false);
     setRawAvatarSrc(null);
   };
@@ -82,9 +90,10 @@ export default function SettingsPage() {
       const updated = await userService.updateProfile({ avatar: avatarPath });
       dispatch(setUser({ ...user!, ...updated, avatar: avatarPath }));
       setCroppedAvatarFile(null);
+      setAvatarPreviewDraft(null);
       notify.success('Profile picture updated!');
-    } catch {
-      notify.error('Failed to update profile picture');
+    } catch (err: unknown) {
+      notify.error(getErrorMessage(err, 'Failed to update profile picture'));
     } finally {
       setSavingAvatar(false);
     }
@@ -97,9 +106,10 @@ export default function SettingsPage() {
     try {
       const updated = await userService.updateProfile({ username: username.trim() });
       dispatch(setUser({ ...user!, username: updated.username }));
+      setUsernameDraft(null);
       notify.success('Username updated!');
-    } catch (err: any) {
-      notify.error(err.response?.data?.message || 'Failed to update username');
+    } catch (err: unknown) {
+      notify.error(getErrorMessage(err, 'Failed to update username'));
     } finally {
       setSavingUsername(false);
     }
@@ -112,9 +122,10 @@ export default function SettingsPage() {
     try {
       const updated = await userService.updateProfile({ email: email.trim() });
       dispatch(setUser({ ...user!, email: updated.email }));
+      setEmailDraft(null);
       notify.success('Email updated!');
-    } catch (err: any) {
-      notify.error(err.response?.data?.message || 'Failed to update email');
+    } catch (err: unknown) {
+      notify.error(getErrorMessage(err, 'Failed to update email'));
     } finally {
       setSavingEmail(false);
     }
@@ -157,12 +168,15 @@ export default function SettingsPage() {
               <div className="flex items-center gap-6">
                 {/* Avatar preview */}
                 <div className="relative shrink-0">
-                  <div className="h-20 w-20 overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
+                  <div className="relative h-20 w-20 overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
                     {avatarPreview ? (
-                      <img
+                      <Image
                         src={avatarPreview}
                         alt="Avatar"
-                        className="h-full w-full object-cover"
+                        fill
+                        sizes="80px"
+                        unoptimized
+                        className="object-cover"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-white/30">
@@ -224,7 +238,7 @@ export default function SettingsPage() {
                   <input
                     type="text"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => setUsernameDraft(e.target.value)}
                     className="w-full bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-white/25"
                     placeholder="Enter username"
                   />
@@ -261,7 +275,7 @@ export default function SettingsPage() {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmailDraft(e.target.value)}
                     className="w-full bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-white/25"
                     placeholder="Enter email"
                   />

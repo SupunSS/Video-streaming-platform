@@ -44,7 +44,7 @@ const mockComments: Comment[] = [
   },
 ];
 
-export const CommentSection: React.FC<CommentSectionProps> = ({ videoId }) => {
+export const CommentSection: React.FC<CommentSectionProps> = () => {
   const [comments, setComments] = useState<Comment[]>(mockComments);
   const [newComment, setNewComment] = useState('');
   const [sortBy, setSortBy] = useState<'top' | 'newest'>('top');

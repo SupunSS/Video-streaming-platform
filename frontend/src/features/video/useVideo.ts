@@ -16,7 +16,7 @@ export const useVideo = (id: string) => {
         const data = await videoService.getOne(id);
         setVideo(data);
         await videoService.incrementViews(id);
-      } catch (err: any) {
+      } catch {
         setError("Video not found");
         notify.error("Failed to load video");
       } finally {
