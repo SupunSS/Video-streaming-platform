@@ -46,6 +46,21 @@ const NAV_ITEMS = [
 const subscribeToClient = () => () => undefined;
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
+const SEARCH_FILTERS_RESET_EVENT = 'search-filters-reset';
+
+const getUrlSearchQuery = () => {
+  if (typeof window === 'undefined') return '';
+  return new URLSearchParams(window.location.search).get('q') ?? '';
+};
+
+const getUrlGenres = () => {
+  if (typeof window === 'undefined') return [];
+
+  return new URLSearchParams(window.location.search)
+    .getAll('genre')
+    .flatMap((genre) => genre.split(','))
+    .filter((genre) => genre && genre !== 'All');
+};
 
 export const Navbar = () => {
   const pathname = usePathname();
@@ -64,8 +79,8 @@ export const Navbar = () => {
   );
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeGenre, setActiveGenre] = useState('All');
+  const [searchQuery, setSearchQuery] = useState(getUrlSearchQuery);
+  const [activeGenres, setActiveGenres] = useState<string[]>(getUrlGenres);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -81,6 +96,7 @@ export const Navbar = () => {
     pathname.startsWith('/dashboard/') ||
     pathname === '/library' ||
     pathname.startsWith('/library/') ||
+    pathname === '/search' ||
     pathname.startsWith('/video/') ||
     pathname.startsWith('/watch/');
 
@@ -103,6 +119,19 @@ export const Navbar = () => {
   }, []);
 
   useEffect(() => {
+    const handleResetSearchFilters = () => {
+      setSearchQuery('');
+      setActiveGenres([]);
+      setFiltersOpen(false);
+    };
+
+    window.addEventListener(SEARCH_FILTERS_RESET_EVENT, handleResetSearchFilters);
+    return () => {
+      window.removeEventListener(SEARCH_FILTERS_RESET_EVENT, handleResetSearchFilters);
+    };
+  }, []);
+
+  useEffect(() => {
     const hydrateUser = async () => {
       if (!mounted || !isAuthenticated || user) return;
       try {
@@ -115,28 +144,58 @@ export const Navbar = () => {
     void hydrateUser();
   }, [mounted, isAuthenticated, user, dispatch]);
 
+  const navigateToSearch = React.useCallback(
+    (query: string, genres: string[], replace = pathname === '/search') => {
+      const params = new URLSearchParams();
+      if (query) params.set('q', query);
+      genres.forEach((genre) => params.append('genre', genre));
+
+      const path = `/search${params.toString() ? `?${params.toString()}` : ''}`;
+      if (replace) {
+        router.replace(path);
+      } else {
+        router.push(path);
+      }
+    },
+    [pathname, router],
+  );
+
+  useEffect(() => {
+    if (pathname !== '/search') return;
+
+    const timeout = window.setTimeout(() => {
+      navigateToSearch(searchQuery.trim(), activeGenres, true);
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [activeGenres, navigateToSearch, pathname, searchQuery]);
+
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const query = searchQuery.trim();
-    if (!query) return;
-    const params = new URLSearchParams({ q: query });
-    if (activeGenre !== 'All') params.set('genre', activeGenre);
-    router.push(`/search?${params.toString()}`);
+    if (!query && activeGenres.length === 0) return;
+    navigateToSearch(query, activeGenres, false);
   };
 
   const handleGenreClick = (genre: string) => {
-    setActiveGenre(genre);
-    const query = searchQuery.trim();
-    if (!query) return;
-    const params = new URLSearchParams({ q: query });
-    if (genre !== 'All') params.set('genre', genre);
-    router.push(`/search?${params.toString()}`);
+    const nextGenres =
+      genre === 'All'
+        ? []
+        : activeGenres.includes(genre)
+          ? activeGenres.filter((activeGenre) => activeGenre !== genre)
+          : [...activeGenres, genre];
+
+    setActiveGenres(nextGenres);
+    navigateToSearch(searchQuery.trim(), nextGenres);
   };
 
   const clearSearch = () => {
     setSearchQuery('');
-    setActiveGenre('All');
+    setActiveGenres([]);
     setFiltersOpen(false);
+    if (pathname === '/search') {
+      router.replace('/search');
+    }
   };
 
   const handleLogout = () => {
@@ -145,7 +204,13 @@ export const Navbar = () => {
     router.push('/');
   };
 
-  const hasActiveFilter = activeGenre !== 'All';
+  const hasActiveFilter = activeGenres.length > 0;
+  const filterLabel =
+    activeGenres.length === 0
+      ? 'Filter'
+      : activeGenres.length === 1
+        ? activeGenres[0]
+        : `${activeGenres.length} genres`;
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
@@ -244,7 +309,7 @@ export const Navbar = () => {
                   }`}
                 >
                   <FiSliders className="h-3.5 w-3.5" />
-                  {!filtersOpen && hasActiveFilter ? activeGenre : 'Filter'}
+                  {!filtersOpen && hasActiveFilter ? filterLabel : 'Filter'}
                 </button>
               </div>
             </form>
@@ -421,7 +486,10 @@ export const Navbar = () => {
               <div className="overflow-x-auto">
                 <div className="flex min-w-max items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-2 backdrop-blur-2xl">
                   {GENRES.map((genre) => {
-                    const isActive = activeGenre === genre;
+                    const isActive =
+                      genre === 'All'
+                        ? activeGenres.length === 0
+                        : activeGenres.includes(genre);
                     return (
                       <motion.button
                         key={genre}
