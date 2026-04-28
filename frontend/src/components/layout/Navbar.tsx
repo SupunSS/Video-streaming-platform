@@ -75,6 +75,15 @@ export const Navbar = () => {
       : `${API_CONFIG.BASE_URL.replace(/\/$/, '')}/${user.avatar.replace(/^\/+/, '')}`
     : '';
 
+  const showSearchControls =
+    pathname === '/' ||
+    pathname === '/dashboard' ||
+    pathname.startsWith('/dashboard/') ||
+    pathname === '/library' ||
+    pathname.startsWith('/library/') ||
+    pathname.startsWith('/video/') ||
+    pathname.startsWith('/watch/');
+
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 8);
     handleScroll();
@@ -151,7 +160,7 @@ export const Navbar = () => {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-20 items-center justify-between gap-4">
 
-          {/* Left — Logo + Nav */}
+       
           <div className="flex min-w-0 items-center gap-8">
             <Link href="/" className="flex shrink-0 items-center gap-3">
               <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] shadow-[0_0_30px_rgba(255,255,255,0.06)]">
@@ -195,10 +204,11 @@ export const Navbar = () => {
             </nav>
           </div>
 
-          {/* Right — Search + Actions */}
+       
           <div className="flex min-w-0 items-center justify-end gap-2 sm:gap-3">
 
-            {/* Search */}
+          
+            {showSearchControls && (
             <form
               onSubmit={handleSearch}
               className={`hidden items-center transition-all duration-300 md:flex ${
@@ -238,8 +248,9 @@ export const Navbar = () => {
                 </button>
               </div>
             </form>
+            )}
 
-            {/* Upload — studios only */}
+           
             {mounted && isAuthenticated && isStudio && (
               <Link
                 href="/upload"
@@ -338,7 +349,7 @@ export const Navbar = () => {
                             Dashboard
                           </Link>
 
-                          {/* ✅ Settings */}
+                 
                           <Link
                             href="/settings"
                             onClick={() => setDropdownOpen(false)}
@@ -399,7 +410,7 @@ export const Navbar = () => {
 
         {/* Genre filter bar */}
         <AnimatePresence>
-          {filtersOpen && (
+          {showSearchControls && filtersOpen && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}

@@ -19,6 +19,11 @@ const getStoredToken = () => {
   return localStorage.getItem("access_token");
 };
 
+const notifyLibraryChanged = () => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("library-updated"));
+};
+
 const initialToken = getStoredToken();
 
 const initialState: AuthState = {
@@ -41,6 +46,7 @@ const authSlice = createSlice({
 
       if (typeof window !== "undefined") {
         localStorage.setItem("access_token", action.payload.token);
+        notifyLibraryChanged();
       }
     },
 
@@ -62,6 +68,7 @@ const authSlice = createSlice({
 
       if (typeof window !== "undefined") {
         localStorage.removeItem("access_token");
+        notifyLibraryChanged();
       }
     },
   },

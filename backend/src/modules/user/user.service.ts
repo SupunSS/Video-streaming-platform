@@ -25,7 +25,7 @@ export class UserService {
 
   async updateAvatar(userId: string, avatar: string) {
     const user = await this.userModel
-      .findByIdAndUpdate(userId, { avatar }, { new: true })
+      .findByIdAndUpdate(userId, { avatar }, { returnDocument: 'after' })
       .select('-password')
       .exec();
 
@@ -54,7 +54,7 @@ export class UserService {
     }
 
     const user = await this.userModel
-      .findByIdAndUpdate(userId, { ...dto }, { new: true })
+      .findByIdAndUpdate(userId, { ...dto }, { returnDocument: 'after' })
       .select('-password')
       .exec();
 

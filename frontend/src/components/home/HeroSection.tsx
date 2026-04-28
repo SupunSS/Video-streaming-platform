@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { FiPlay, FiInfo, FiVolume2, FiVolumeX } from 'react-icons/fi';
 import { Video } from '@/types/video.types';
@@ -117,10 +118,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
             transition={{ delay: 0.6, duration: 0.5 }}
             className="flex items-center justify-center gap-4 pt-4"
           >
-            <button className="btn-neon flex items-center gap-2 px-8 py-3 text-lg">
+            <Link
+              href={`/video/${video.id}`}
+              className="btn-neon flex items-center gap-2 px-8 py-3 text-lg"
+            >
               <FiPlay className="w-5 h-5" />
               <span>Play</span>
-            </button>
+            </Link>
             <button className="px-6 py-3 bg-glass-light backdrop-blur-xl border border-white/20 rounded-lg hover:bg-glass-medium hover:border-white/40 transition-all duration-300 flex items-center gap-2 text-lg">
               <FiInfo className="w-5 h-5" />
               <span>More Info</span>

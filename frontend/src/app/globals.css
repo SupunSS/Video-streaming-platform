@@ -53,6 +53,20 @@
     background: linear-gradient(135deg, var(--color-dark-500) 0%, var(--color-dark-300) 50%, var(--color-dark-200) 100%);
     color: white; /* Standard text remains white */
   }
+
+  a,
+  button:not(:disabled),
+  label[for],
+  summary,
+  [role="button"]:not([aria-disabled="true"]),
+  [role="link"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
   
   ::selection {
     background-color: color-mix(in srgb, var(--color-primary) 20%, transparent);

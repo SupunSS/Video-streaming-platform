@@ -163,7 +163,7 @@ export class VideoService {
     }
 
     const video = await this.videoModel
-      .findByIdAndUpdate(id, { $inc: { views: 1 } }, { new: true })
+      .findByIdAndUpdate(id, { $inc: { views: 1 } }, { returnDocument: 'after' })
       .populate<{ owner: PopulatedOwner }>('owner', ownerSelect)
       .lean<LeanVideo | null>()
       .exec();
