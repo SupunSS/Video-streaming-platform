@@ -81,6 +81,14 @@ const toPercent = (value: number, total: number): number => {
   return Math.min(100, Math.max(0, (value / total) * 100));
 };
 
+const canRequestPiP = (video: HTMLVideoElement | null): boolean => {
+  if (!video || !document.pictureInPictureEnabled || video.disablePictureInPicture) {
+    return false;
+  }
+
+  return video.readyState >= 1 && video.videoWidth > 0 && video.videoHeight > 0;
+};
+
 const sliderStyle = (percent: number) => ({
   background: `linear-gradient(to right, rgb(245 158 11) 0%, rgb(245 158 11) ${percent}%, rgba(255,255,255,0.18) ${percent}%, rgba(255,255,255,0.18) 100%)`,
 });
@@ -102,6 +110,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPiP, setIsPiP] = useState(false);
+  const [isPiPAvailable, setIsPiPAvailable] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -273,6 +282,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       setCurrentTime(video.currentTime || 0);
       setBuffered(getBufferedEnd(video));
       setIsReady(true);
+      setIsPiPAvailable(canRequestPiP(video));
       refreshCaptionAvailability();
       showControlsNow();
     };
@@ -280,6 +290,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const onLoadedData = () => {
       setBuffered(getBufferedEnd(video));
       setIsReady(true);
+      setIsPiPAvailable(canRequestPiP(video));
     };
 
     const onTimeUpdate = () => {
@@ -311,6 +322,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       clearHideTimer();
     };
 
+    const onMediaUnavailable = () => {
+      setIsPiPAvailable(false);
+    };
+
+    const onResize = () => {
+      setIsPiPAvailable(canRequestPiP(video));
+    };
+
     const onVolumeChange = () => {
       const muted = video.muted || video.volume === 0;
       setIsMuted(muted);
@@ -329,6 +348,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     video.addEventListener('play', onPlay);
     video.addEventListener('pause', onPause);
     video.addEventListener('ended', onEnded);
+    video.addEventListener('emptied', onMediaUnavailable);
+    video.addEventListener('error', onMediaUnavailable);
+    video.addEventListener('resize', onResize);
     video.addEventListener('volumechange', onVolumeChange);
     video.addEventListener('enterpictureinpicture', onEnterPiP as EventListener);
     video.addEventListener('leavepictureinpicture', onLeavePiP as EventListener);
@@ -343,6 +365,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeEventListener('play', onPlay);
       video.removeEventListener('pause', onPause);
       video.removeEventListener('ended', onEnded);
+      video.removeEventListener('emptied', onMediaUnavailable);
+      video.removeEventListener('error', onMediaUnavailable);
+      video.removeEventListener('resize', onResize);
       video.removeEventListener('volumechange', onVolumeChange);
       video.removeEventListener('enterpictureinpicture', onEnterPiP as EventListener);
       video.removeEventListener('leavepictureinpicture', onLeavePiP as EventListener);
@@ -456,11 +481,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     try {
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture();
-      } else {
+      } else if (canRequestPiP(video)) {
         await video.requestPictureInPicture();
+      } else {
+        setIsPiPAvailable(false);
       }
     } catch (error) {
-      console.error('Failed to toggle picture-in-picture:', error);
+      setIsPiPAvailable(canRequestPiP(video));
+      console.warn('Picture-in-picture is unavailable for this video right now.', error);
     }
   };
 
@@ -667,9 +695,20 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <button
                 type="button"
                 onClick={togglePiP}
-                className="rounded-full p-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+                disabled={!isPiP && !isPiPAvailable}
+                className={`rounded-full p-2 transition ${
+                  isPiP || isPiPAvailable
+                    ? 'text-white/85 hover:bg-white/10 hover:text-white'
+                    : 'cursor-not-allowed text-white/30'
+                }`}
                 aria-label="Picture in picture"
-                title={isPiP ? 'Exit picture in picture' : 'Picture in picture'}
+                title={
+                  isPiP
+                    ? 'Exit picture in picture'
+                    : isPiPAvailable
+                      ? 'Picture in picture'
+                      : 'Picture in picture unavailable'
+                }
               >
                 <MdPictureInPictureAlt className="text-[22px]" />
               </button>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -20,6 +20,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { useUpload } from '@/features/upload/useUpload';
 import { useAuth } from '@/features/auth/useAuth';
 import { ImageCropper } from '@/components/ui/imagecropper';
+import { videoService, VideoResponse } from '@/services/video.service';
 
 type VideoType = 'movie' | 'tv_show';
 
@@ -95,12 +96,47 @@ const getYearRangeStart = (year: number) => {
   );
 };
 
+const formatVideoDuration = (seconds?: number) => {
+  if (!seconds || !Number.isFinite(seconds)) return '';
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${remainingSeconds}s`;
+  return `${remainingSeconds}s`;
+};
+
+const getVideoDuration = (file: File) =>
+  new Promise<number | undefined>((resolve) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement('video');
+
+    const cleanup = () => {
+      URL.revokeObjectURL(url);
+    };
+
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      cleanup();
+      resolve(Number.isFinite(video.duration) ? Math.round(video.duration) : undefined);
+    };
+    video.onerror = () => {
+      cleanup();
+      resolve(undefined);
+    };
+    video.src = url;
+  });
+
 export default function UploadPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { upload, videoProgress, isUploading, status } = useUpload();
 
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoDuration, setVideoDuration] = useState<number | undefined>();
+  const durationRequestId = useRef(0);
 
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [poster, setPoster] = useState<File | null>(null);
@@ -130,17 +166,35 @@ export default function UploadPage() {
   const [isFeatured, setIsFeatured] = useState(false);
 
   const [seriesTitle, setSeriesTitle] = useState('');
+  const [selectedSeriesTitle, setSelectedSeriesTitle] = useState('');
   const [seasonNumber, setSeasonNumber] = useState('');
   const [episodeNumber, setEpisodeNumber] = useState('');
   const [episodeTitle, setEpisodeTitle] = useState('');
+  const [myVideos, setMyVideos] = useState<VideoResponse[]>([]);
 
   const checkingAuth = !isAuthenticated;
+  const isStudio = user?.accountType === 'studio';
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace('/login');
     }
   }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user || user.accountType !== 'studio') return;
+
+    const loadStudioVideos = async () => {
+      try {
+        const data = await videoService.getMyVideos();
+        setMyVideos(data);
+      } catch (error) {
+        console.error('Failed to load studio videos:', error);
+      }
+    };
+
+    void loadStudioVideos();
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     return () => {
@@ -150,6 +204,47 @@ export default function UploadPage() {
   }, [thumbnailPreview, posterPreview]);
 
   const isTvShow = useMemo(() => type === 'tv_show', [type]);
+  const seriesOptions = useMemo(() => {
+    const seriesMap = new Map<
+      string,
+      { title: string; episodeCount: number; latestSeason: number; latestEpisode: number }
+    >();
+
+    myVideos
+      .filter((video) => video.type === 'tv_show' && video.seriesTitle?.trim())
+      .forEach((video) => {
+        const title = video.seriesTitle!.trim();
+        const key = title.toLowerCase();
+        const current = seriesMap.get(key);
+        const season = video.seasonNumber ?? 1;
+        const episode = video.episodeNumber ?? 0;
+
+        if (!current) {
+          seriesMap.set(key, {
+            title,
+            episodeCount: 1,
+            latestSeason: season,
+            latestEpisode: episode,
+          });
+          return;
+        }
+
+        const isLaterEpisode =
+          season > current.latestSeason ||
+          (season === current.latestSeason && episode > current.latestEpisode);
+
+        seriesMap.set(key, {
+          ...current,
+          episodeCount: current.episodeCount + 1,
+          latestSeason: isLaterEpisode ? season : current.latestSeason,
+          latestEpisode: isLaterEpisode ? episode : current.latestEpisode,
+        });
+      });
+
+    return Array.from(seriesMap.values()).sort((a, b) =>
+      a.title.localeCompare(b.title),
+    );
+  }, [myVideos]);
   const visibleYears = useMemo(
     () =>
       Array.from({ length: YEAR_PAGE_SIZE }, (_, index) => yearRangeStart + index).filter(
@@ -161,7 +256,15 @@ export default function UploadPage() {
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file && file.type.startsWith('video/')) {
+      const requestId = durationRequestId.current + 1;
+      durationRequestId.current = requestId;
       setVideoFile(file);
+      setVideoDuration(undefined);
+      void getVideoDuration(file).then((duration) => {
+        if (durationRequestId.current === requestId) {
+          setVideoDuration(duration);
+        }
+      });
       if (!title) {
         setTitle(file.name.replace(/\.[^/.]+$/, ''));
       }
@@ -265,6 +368,11 @@ export default function UploadPage() {
       return;
     }
 
+    const duration = videoDuration ?? await getVideoDuration(videoFile);
+    if (duration) {
+      setVideoDuration(duration);
+    }
+
     await upload(videoFile, thumbnail, poster, {
       title: title.trim(),
       description: description.trim(),
@@ -275,6 +383,7 @@ export default function UploadPage() {
       language: language.trim(),
       ageRating: ageRating.trim(),
       releaseYear: releaseYear ? Number(releaseYear) : undefined,
+      duration,
       isFeatured,
       seriesTitle: isTvShow ? seriesTitle.trim() : undefined,
       seasonNumber: isTvShow ? Number(seasonNumber) : undefined,
@@ -283,10 +392,46 @@ export default function UploadPage() {
     });
   };
 
+  const handleSelectSeries = (value: string) => {
+    setSelectedSeriesTitle(value);
+
+    if (!value) {
+      setSeriesTitle('');
+      return;
+    }
+
+    const selected = seriesOptions.find((option) => option.title === value);
+    setSeriesTitle(value);
+
+    if (selected && !seasonNumber) {
+      setSeasonNumber(String(selected.latestSeason || 1));
+    }
+
+    if (selected && !episodeNumber) {
+      setEpisodeNumber(String((selected.latestEpisode || 0) + 1));
+    }
+  };
+
   if (checkingAuth) {
     return (
       <div className="min-h-screen bg-cyber-gradient flex items-center justify-center">
         <div className="text-white/60 text-sm">Checking access...</div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && user && !isStudio) {
+    return (
+      <div className="min-h-screen bg-cyber-gradient">
+        <Navbar />
+        <main className="flex min-h-screen items-center justify-center px-4 pt-24">
+          <div className="glass-card max-w-lg p-8 text-center">
+            <h1 className="text-2xl font-bold text-white">Studio access required</h1>
+            <p className="mt-3 text-sm text-white/55">
+              Only studio accounts can upload movies and TV show episodes.
+            </p>
+          </div>
+        </main>
       </div>
     );
   }
@@ -352,12 +497,19 @@ export default function UploadPage() {
                     </div>
                     <div>
                       <p className="font-semibold">{videoFile.name}</p>
-                      <p className="text-sm text-white/60">{(videoFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                      <p className="text-sm text-white/60">
+                        {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
+                        {videoDuration ? ` - ${formatVideoDuration(videoDuration)}` : ''}
+                      </p>
                     </div>
                   </div>
                   {!isUploading && (
                     <button
-                      onClick={() => setVideoFile(null)}
+                      onClick={() => {
+                        durationRequestId.current += 1;
+                        setVideoFile(null);
+                        setVideoDuration(undefined);
+                      }}
                       className="p-2 hover:bg-white/10 rounded-full transition-colors"
                     >
                       <FiX className="w-5 h-5 text-white/60" />
@@ -456,12 +608,39 @@ export default function UploadPage() {
 
                 {isTvShow && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                      <label className="block text-sm font-medium mb-2">
+                        Add to Existing Show
+                      </label>
+                      <select
+                        value={selectedSeriesTitle}
+                        onChange={(e) => handleSelectSeries(e.target.value)}
+                        className="input-glass"
+                        disabled={isUploading || seriesOptions.length === 0}
+                      >
+                        <option value="">
+                          {seriesOptions.length === 0
+                            ? 'No existing TV shows yet'
+                            : 'Start a new show'}
+                        </option>
+                        {seriesOptions.map((show) => (
+                          <option key={show.title} value={show.title}>
+                            {show.title} - {show.episodeCount} episode
+                            {show.episodeCount === 1 ? '' : 's'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
                     <div className="md:col-span-3">
                       <label className="block text-sm font-medium mb-2">Series Title *</label>
                       <input
                         type="text"
                         value={seriesTitle}
-                        onChange={(e) => setSeriesTitle(e.target.value)}
+                        onChange={(e) => {
+                          setSeriesTitle(e.target.value);
+                          setSelectedSeriesTitle('');
+                        }}
                         placeholder="Enter series title"
                         className="input-glass"
                         disabled={isUploading}

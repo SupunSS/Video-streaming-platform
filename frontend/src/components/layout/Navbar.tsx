@@ -20,7 +20,14 @@ import {
 import { API_CONFIG } from '@/config/api.config';
 import { userService } from '@/services/user.service';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { logout, setUser } from '@/store/slices/authSlice';
+import { logout, setCredentials, setUser } from '@/store/slices/authSlice';
+import {
+  EMPTY_REMEMBERED_ACCOUNTS,
+  getRememberedAccounts,
+  RememberedAccount,
+  rememberAccount,
+  subscribeToRememberedAccounts,
+} from '@/lib/remembered-accounts';
 
 const GENRES = [
   'All',
@@ -39,6 +46,8 @@ const GENRES = [
 
 const NAV_ITEMS = [
   { label: 'Home', href: '/' },
+  { label: 'Films', href: '/films' },
+  { label: 'TV Shows', href: '/tv-shows' },
   { label: 'Library', href: '/library' },
   { label: 'Subscriptions', href: '/subscriptions' },
 ];
@@ -62,6 +71,13 @@ const getUrlGenres = () => {
     .filter((genre) => genre && genre !== 'All');
 };
 
+const buildAvatarSrc = (avatar?: string) => {
+  if (!avatar) return '';
+  return avatar.startsWith('http')
+    ? avatar
+    : `${API_CONFIG.BASE_URL.replace(/\/$/, '')}/${avatar.replace(/^\/+/, '')}`;
+};
+
 export const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
@@ -83,15 +99,24 @@ export const Navbar = () => {
   const [activeGenres, setActiveGenres] = useState<string[]>(getUrlGenres);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const rememberedAccounts = useSyncExternalStore(
+    subscribeToRememberedAccounts,
+    getRememberedAccounts,
+    () => EMPTY_REMEMBERED_ACCOUNTS,
+  );
 
-  const avatarSrc = user?.avatar
-    ? user.avatar.startsWith('http')
-      ? user.avatar
-      : `${API_CONFIG.BASE_URL.replace(/\/$/, '')}/${user.avatar.replace(/^\/+/, '')}`
-    : '';
+  const avatarSrc = buildAvatarSrc(user?.avatar);
+  const currentAccountId = user?.id || user?.email;
+  const quickLoginAccounts = rememberedAccounts.filter(
+    (account) => !isAuthenticated || account.id !== currentAccountId,
+  );
 
   const showSearchControls =
     pathname === '/' ||
+    pathname === '/films' ||
+    pathname.startsWith('/films/') ||
+    pathname === '/tv-shows' ||
+    pathname.startsWith('/tv-shows/') ||
     pathname === '/dashboard' ||
     pathname.startsWith('/dashboard/') ||
     pathname === '/library' ||
@@ -202,6 +227,86 @@ export const Navbar = () => {
     dispatch(logout());
     setDropdownOpen(false);
     router.push('/');
+  };
+
+  const handleRememberedAccountLogin = (account: RememberedAccount) => {
+    dispatch(setCredentials({ user: account.user, token: account.token }));
+    rememberAccount(account.user, account.token);
+    setDropdownOpen(false);
+    router.push(account.user.accountType === 'studio' ? '/dashboard' : '/');
+  };
+
+  const studioQuickLoginAccounts = quickLoginAccounts.filter(
+    (account) => account.user.accountType === 'studio',
+  );
+  const viewerQuickLoginAccounts = quickLoginAccounts.filter(
+    (account) => account.user.accountType !== 'studio',
+  );
+
+  const renderQuickLoginAccount = (account: RememberedAccount) => {
+    const accountAvatar = buildAvatarSrc(account.user.avatar);
+
+    return (
+      <button
+        key={account.id}
+        type="button"
+        onClick={() => handleRememberedAccountLogin(account)}
+        className="flex w-full min-w-0 items-center gap-3 rounded-2xl px-4 py-3 text-left transition hover:bg-white/[0.06]"
+      >
+        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
+          {accountAvatar ? (
+            <Image
+              src={accountAvatar}
+              alt={account.user.username}
+              fill
+              sizes="36px"
+              unoptimized
+              className="object-cover"
+            />
+          ) : (
+            <FiUser className="h-4 w-4 text-white/60" />
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-white/80">
+            {account.user.username}
+          </p>
+          <p className="truncate text-xs text-white/40">
+            {account.user.email}
+          </p>
+        </div>
+      </button>
+    );
+  };
+
+  const renderQuickLoginCategory = (
+    label: string,
+    accounts: RememberedAccount[],
+  ) => {
+    if (accounts.length === 0) return null;
+
+    return (
+      <div className="space-y-1">
+        <p className="px-4 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300/70">
+          {label}
+        </p>
+        {accounts.slice(0, 4).map(renderQuickLoginAccount)}
+      </div>
+    );
+  };
+
+  const renderQuickLoginGroups = (title: string) => {
+    if (quickLoginAccounts.length === 0) return null;
+
+    return (
+      <div className="mb-2 space-y-2 border-b border-white/8 pb-2">
+        <p className="px-4 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          {title}
+        </p>
+        {renderQuickLoginCategory('Studios', studioQuickLoginAccounts)}
+        {renderQuickLoginCategory('Viewer accounts', viewerQuickLoginAccounts)}
+      </div>
+    );
   };
 
   const hasActiveFilter = activeGenres.length > 0;
@@ -405,14 +510,18 @@ export const Navbar = () => {
 
                         {/* Menu items */}
                         <div className="p-2">
-                          <Link
-                            href="/dashboard"
-                            onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
-                          >
-                            <FiGrid className="h-4 w-4" />
-                            Dashboard
-                          </Link>
+                          {renderQuickLoginGroups('Switch account')}
+
+                          {isStudio && (
+                            <Link
+                              href="/dashboard"
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+                            >
+                              <FiGrid className="h-4 w-4" />
+                              Dashboard
+                            </Link>
+                          )}
 
                  
                           <Link
@@ -448,6 +557,8 @@ export const Navbar = () => {
                       </>
                     ) : (
                       <div className="p-2">
+                        {renderQuickLoginGroups('Login with existing account')}
+
                         <Link
                           href="/login"
                           onClick={() => setDropdownOpen(false)}

@@ -8,12 +8,14 @@ import Link from 'next/link';
 import {
   FiArrowRight,
   FiBookmark,
+  FiFilm,
   FiGrid,
   FiPlay,
   FiRefreshCw,
   FiSearch,
   FiStar,
   FiTrendingUp,
+  FiTv,
 } from 'react-icons/fi';
 import { Navbar } from '@/components/layout/Navbar';
 import { VideoCard } from '@/components/video/VideoCard';
@@ -21,6 +23,7 @@ import { getLibraryVideos } from '@/lib/library';
 import { Video } from '@/types/video.types';
 
 type SortKey = 'recent' | 'title' | 'views' | 'rating';
+type MediaFilter = 'all' | 'movie' | 'tv_show';
 
 const genreFallbacks = [
   'Action',
@@ -81,11 +84,16 @@ function getNumericRating(rating: Video['rating']): number {
 function normalizeVideo(video: Video, index: number): Video {
   return {
     ...video,
+    type: video.type ?? 'movie',
     genre: video.genre ?? genreFallbacks[index % genreFallbacks.length],
     year: video.year ?? 2024 - (index % 5),
     rating: video.rating ?? null,
     progress: video.progress ?? ((index * 17) % 82) + 12,
   };
+}
+
+function getVideoType(video: Video): 'movie' | 'tv_show' {
+  return video.type === 'tv_show' ? 'tv_show' : 'movie';
 }
 
 function sortVideos(videos: Video[], sortBy: SortKey): Video[] {
@@ -184,6 +192,7 @@ export default function LibraryPage() {
   const router = useRouter();
   const [videos, setVideos] = useState<Video[]>([]);
   const [search, setSearch] = useState('');
+  const [activeType, setActiveType] = useState<MediaFilter>('all');
   const [activeGenre, setActiveGenre] = useState('All');
   const [sortBy, setSortBy] = useState<SortKey>('recent');
 
@@ -203,20 +212,41 @@ export default function LibraryPage() {
     };
   }, []);
 
+  const mediaCounts = useMemo(() => {
+    const films = videos.filter((video) => getVideoType(video) === 'movie').length;
+    const tvShows = videos.filter((video) => getVideoType(video) === 'tv_show').length;
+
+    return {
+      all: videos.length,
+      movie: films,
+      tv_show: tvShows,
+    };
+  }, [videos]);
+
+  const typedVideos = useMemo(
+    () =>
+      activeType === 'all'
+        ? videos
+        : videos.filter((video) => getVideoType(video) === activeType),
+    [activeType, videos],
+  );
+
   const genres = useMemo(() => {
     const uniqueGenres = new Set(
-      videos.map((video) => video.genre).filter(Boolean) as string[],
+      typedVideos.map((video) => video.genre).filter(Boolean) as string[],
     );
     return ['All', ...Array.from(uniqueGenres)];
-  }, [videos]);
+  }, [typedVideos]);
 
   const filteredVideos = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    const filtered = videos.filter((video) => {
+    const filtered = typedVideos.filter((video) => {
       const matchesQuery =
         !query ||
         video.title.toLowerCase().includes(query) ||
+        (video.seriesTitle ?? '').toLowerCase().includes(query) ||
+        (video.episodeTitle ?? '').toLowerCase().includes(query) ||
         (video.description ?? '').toLowerCase().includes(query) ||
         (video.channel ?? '').toLowerCase().includes(query) ||
         (video.genre ?? '').toLowerCase().includes(query);
@@ -227,9 +257,15 @@ export default function LibraryPage() {
     });
 
     return sortVideos(filtered, sortBy);
-  }, [videos, search, activeGenre, sortBy]);
+  }, [typedVideos, search, activeGenre, sortBy]);
 
   const featuredVideo = filteredVideos[0] ?? videos[0] ?? null;
+  const filteredFilms = filteredVideos.filter(
+    (video) => getVideoType(video) === 'movie',
+  );
+  const filteredTvShows = filteredVideos.filter(
+    (video) => getVideoType(video) === 'tv_show',
+  );
 
   const continueWatching = filteredVideos
     .filter((video) => {
@@ -310,6 +346,7 @@ export default function LibraryPage() {
                     type="button"
                     onClick={() => {
                       setSearch('');
+                      setActiveType('all');
                       setActiveGenre('All');
                       setSortBy('recent');
                     }}
@@ -407,6 +444,38 @@ export default function LibraryPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
+                <div className="flex rounded-2xl border border-white/10 bg-white/[0.04] p-1">
+                  {[
+                    { id: 'all' as const, label: 'All', icon: <FiGrid /> },
+                    { id: 'movie' as const, label: 'Films', icon: <FiFilm /> },
+                    { id: 'tv_show' as const, label: 'TV Shows', icon: <FiTv /> },
+                  ].map((item) => {
+                    const active = activeType === item.id;
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveType(item.id);
+                          setActiveGenre('All');
+                        }}
+                        className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                          active
+                            ? 'bg-white text-[#060814]'
+                            : 'text-white/60 hover:bg-white/[0.08] hover:text-white'
+                        }`}
+                      >
+                        {item.icon}
+                        <span>{item.label}</span>
+                        <span className={active ? 'text-black/55' : 'text-white/35'}>
+                          {mediaCounts[item.id]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <div className="flex max-w-full gap-2 overflow-x-auto">
                   {genres.map((genre) => {
                     const active = genre === activeGenre;
@@ -467,6 +536,24 @@ export default function LibraryPage() {
 
       {filteredVideos.length > 0 && (
         <section className="mx-auto max-w-7xl space-y-12 px-4 py-8 pb-20 sm:px-6 lg:px-8">
+          {(activeType === 'all' || activeType === 'movie') && (
+            <SectionRow
+              title="Films"
+              subtitle="Saved standalone movies"
+              videos={filteredFilms}
+              onVideoClick={(videoId) => router.push(`/video/${videoId}`)}
+            />
+          )}
+
+          {(activeType === 'all' || activeType === 'tv_show') && (
+            <SectionRow
+              title="TV Shows"
+              subtitle="Saved show episodes and series entries"
+              videos={filteredTvShows}
+              onVideoClick={(videoId) => router.push(`/video/${videoId}`)}
+            />
+          )}
+
           <SectionRow
             title="Continue Watching"
             subtitle="Pick up where you left off"

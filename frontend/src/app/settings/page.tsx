@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -16,6 +16,9 @@ import { API_CONFIG } from '@/config/api.config';
 import { getErrorMessage } from '@/lib/api-error';
 
 const BASE_URL = API_CONFIG.BASE_URL || 'http://localhost:3000';
+const subscribeToClient = () => () => undefined;
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 const buildUrl = (url?: string): string => {
   if (!url) return '';
@@ -26,6 +29,11 @@ export default function SettingsPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const mounted = useSyncExternalStore(
+    subscribeToClient,
+    getClientSnapshot,
+    getServerSnapshot,
+  );
 
   // form state
   const [usernameDraft, setUsernameDraft] = useState<string | null>(null);
@@ -43,10 +51,11 @@ export default function SettingsPage() {
   const [savingAvatar, setSavingAvatar] = useState(false);
 
   useEffect(() => {
+    if (!mounted) return;
     if (!isAuthenticated) {
       router.replace('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, mounted, router]);
 
   useEffect(() => {
     return () => {
@@ -131,7 +140,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (!user) return null;
+  if (!mounted || !user) return null;
 
   return (
     <div className="min-h-screen bg-[#080a0f] text-white">

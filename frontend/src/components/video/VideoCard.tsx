@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FiPlay, FiStar, FiPlus, FiThumbsUp, FiCheck } from 'react-icons/fi';
+import { useRouter } from 'next/navigation';
+import { FiInfo, FiPlay, FiStar, FiPlus, FiThumbsUp, FiCheck } from 'react-icons/fi';
 import { Video } from '@/types/video.types';
 import { isVideoInLibrary, toggleLibraryVideo } from '@/lib/library';
 
@@ -22,6 +23,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   onClick,
   enableHoverDetails = false,
 }) => {
+  const router = useRouter();
   const [saved, setSaved] = useState(() => {
     if (typeof window === 'undefined') return false;
     return isVideoInLibrary(video.id);
@@ -61,6 +63,12 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     setSaved(isVideoInLibrary(video.id));
   };
 
+  const handleInfoClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/video/${video.id}/info`);
+  };
+
   const content = (
     <div
       onClick={!isActive ? onClick : undefined}
@@ -94,12 +102,21 @@ export const VideoCard: React.FC<VideoCardProps> = ({
       )}
 
       {showNewBadge && (
-        <div className="absolute top-3 left-3 z-30">
+        <div className="absolute top-14 left-3 z-30">
           <span className="px-2 py-0.5 bg-neon-cyan text-dark-500 text-[10px] font-bold rounded-md uppercase tracking-wider">
             NEW
           </span>
         </div>
       )}
+
+      <button
+        onClick={handleInfoClick}
+        className="absolute top-3 left-3 z-40 p-2 rounded-full border border-white/20 bg-black/65 text-white backdrop-blur-md transition-colors duration-200 hover:bg-black/80"
+        title="More info"
+        aria-label={`More info about ${video.title}`}
+      >
+        <FiInfo className="w-4 h-4" />
+      </button>
 
       {video.rating && (
         <div className="absolute top-3 right-14 z-30">

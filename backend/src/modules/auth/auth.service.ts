@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
@@ -9,6 +13,8 @@ import { OAuth2Client } from 'google-auth-library';
 import { User, UserDocument } from '../user/schemas/user.schema';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+
+const STUDIO_AGREEMENT_VERSION = '2026-04-30';
 
 @Injectable()
 export class AuthService {
@@ -26,6 +32,14 @@ export class AuthService {
 
   async register(registerDto: RegisterDto) {
     const { username, email, password, accountType } = registerDto;
+    const isStudioAccount = accountType === 'studio';
+
+    if (isStudioAccount && !registerDto.studioAgreementAccepted) {
+      throw new BadRequestException(
+        'You must agree to the Studio Account Privacy Policy to create a studio account.',
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await this.userModel.create({
@@ -33,6 +47,11 @@ export class AuthService {
       email,
       password: hashedPassword,
       accountType: accountType || 'user',
+      studioAgreementAccepted: isStudioAccount,
+      studioAgreementAcceptedAt: isStudioAccount ? new Date() : undefined,
+      studioAgreementVersion: isStudioAccount
+        ? STUDIO_AGREEMENT_VERSION
+        : undefined,
       authProvider: 'local',
     });
 

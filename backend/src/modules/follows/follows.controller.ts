@@ -38,6 +38,19 @@ export class FollowsController {
     return this.followsService.unfollow(req.user.userId, targetId);
   }
 
+  @Get(':targetId/status')
+  async getFollowStatus(
+    @Req() req: AuthenticatedRequest,
+    @Param('targetId') targetId: string,
+  ) {
+    return {
+      isFollowing: await this.followsService.isFollowing(
+        req.user.userId,
+        targetId,
+      ),
+    };
+  }
+
   @Get(':userId/followers')
   getFollowers(@Param('userId') userId: string) {
     return this.followsService.getFollowers(userId);

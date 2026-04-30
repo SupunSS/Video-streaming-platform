@@ -46,6 +46,9 @@ export class Video {
   @Prop({ min: 1900, max: 3000, required: false })
   releaseYear?: number;
 
+  @Prop({ default: 0, min: 0 })
+  duration: number;
+
   @Prop({ default: false })
   isFeatured: boolean;
 

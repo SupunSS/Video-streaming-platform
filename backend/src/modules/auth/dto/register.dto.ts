@@ -1,5 +1,6 @@
 import {
   IsEmail,
+  IsBoolean,
   IsString,
   MinLength,
   IsOptional,
@@ -20,4 +21,8 @@ export class RegisterDto {
   @IsOptional()
   @IsIn(['user', 'studio'])
   accountType?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  studioAgreementAccepted?: boolean;
 }

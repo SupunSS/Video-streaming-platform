@@ -26,6 +26,15 @@ export class User {
 
   @Prop({ default: 'user', enum: ['user', 'studio'] })
   accountType: string;
+
+  @Prop({ default: false })
+  studioAgreementAccepted: boolean;
+
+  @Prop()
+  studioAgreementAcceptedAt?: Date;
+
+  @Prop()
+  studioAgreementVersion?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

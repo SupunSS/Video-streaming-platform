@@ -1,7 +1,6 @@
 import {
   Injectable,
   BadRequestException,
-  NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -24,7 +23,7 @@ export class FollowsService {
     });
 
     if (existing) {
-      throw new BadRequestException('Already following');
+      return existing;
     }
 
     return this.followModel.create({
@@ -38,10 +37,6 @@ export class FollowsService {
       follower: new Types.ObjectId(followerId),
       following: new Types.ObjectId(targetId),
     });
-
-    if (!result) {
-      throw new NotFoundException('Follow relationship not found');
-    }
 
     return { message: 'Unfollowed successfully' };
   }

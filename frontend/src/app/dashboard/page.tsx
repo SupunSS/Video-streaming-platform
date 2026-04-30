@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { videoService, VideoResponse } from '@/services/video.service';
+import { userService } from '@/services/user.service';
 import { API_CONFIG } from '@/config/api.config';
 import { Video } from '@/types/video.types';
 import { getErrorMessage } from '@/lib/api-error';
@@ -331,6 +332,12 @@ export default function DashboardPage() {
 
     const fetchMyVideos = async () => {
       try {
+        const currentUser = await userService.getMe();
+        if (currentUser.accountType !== 'studio') {
+          router.replace('/');
+          return;
+        }
+
         const data = await videoService.getMyVideos();
         setRawVideos(data);
       } catch (err: unknown) {

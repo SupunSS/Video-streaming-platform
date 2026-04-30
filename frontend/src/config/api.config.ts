@@ -24,6 +24,13 @@ export const API_CONFIG = {
         `/videos/${videoId}/comments/${commentId}/like`,
     },
 
+    FOLLOWS: {
+      FOLLOW: (targetId: string) => `/follows/${targetId}`,
+      STATUS: (targetId: string) => `/follows/${targetId}/status`,
+      FOLLOWERS: (userId: string) => `/follows/${userId}/followers`,
+      FOLLOWING: (userId: string) => `/follows/${userId}/following`,
+    },
+
     UPLOAD: {
       VIDEO: "/upload/video",
       THUMBNAIL: "/upload/thumbnail",

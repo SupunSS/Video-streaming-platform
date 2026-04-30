@@ -79,6 +79,11 @@ export class CreateVideoDto {
   releaseYear?: number;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  duration?: number;
+
+  @IsOptional()
   @IsBoolean()
   isFeatured?: boolean;
 

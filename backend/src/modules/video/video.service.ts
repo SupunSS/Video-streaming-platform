@@ -26,6 +26,7 @@ type LeanVideo = {
   language?: string;
   ageRating?: string;
   releaseYear?: number;
+  duration?: number;
   isFeatured?: boolean;
   isPublished?: boolean;
   views?: number;
@@ -97,6 +98,7 @@ export class VideoService {
       language: dto.language ?? '',
       ageRating: dto.ageRating ?? '',
       releaseYear: dto.releaseYear,
+      duration: dto.duration ?? 0,
       isFeatured: dto.isFeatured ?? false,
       seriesTitle: dto.type === 'tv_show' ? (dto.seriesTitle ?? '') : '',
       seasonNumber: dto.type === 'tv_show' ? dto.seasonNumber : undefined,
@@ -292,6 +294,7 @@ export class VideoService {
       isFeatured: video.isFeatured ?? false,
       isPublished: video.isPublished ?? true,
       views: video.views ?? 0,
+      duration: video.duration ?? 0,
       ratingsCount: video.ratingsCount ?? 0,
       averageRating: video.averageRating ?? 0,
       myRating: this.getViewerRating(ratings, viewerId),

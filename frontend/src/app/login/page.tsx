@@ -1,17 +1,30 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiTrash2, FiUser } from 'react-icons/fi';
 import Image from 'next/image';
-import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { CredentialResponse, useGoogleOAuth } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 
 import { useAuth } from '@/features/auth/useAuth';
+import { API_CONFIG } from '@/config/api.config';
+import {
+  forgetRememberedAccount,
+  getRememberedAccounts,
+  EMPTY_REMEMBERED_ACCOUNTS,
+  subscribeToRememberedAccounts,
+} from '@/lib/remembered-accounts';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -20,12 +33,108 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
+declare global {
+  interface Window {
+    google?: {
+      accounts?: {
+        id?: {
+          initialize: (config: {
+            client_id: string;
+            callback: (response: CredentialResponse) => void;
+          }) => void;
+          renderButton: (
+            parent: HTMLElement,
+            options: {
+              theme: 'filled_black';
+              size: 'large';
+              width: string;
+              locale?: string;
+            },
+          ) => void;
+        };
+      };
+    };
+    __fluxGoogleIdentityClientId?: string;
+    __fluxGoogleCredentialHandler?: (response: CredentialResponse) => void;
+  }
+}
+
+const buildAvatarSrc = (avatar?: string) => {
+  if (!avatar) return '';
+  return avatar.startsWith('http')
+    ? avatar
+    : `${API_CONFIG.BASE_URL.replace(/\/$/, '')}/${avatar.replace(/^\/+/, '')}`;
+};
+
+function FluxGoogleLoginButton({
+  onSuccess,
+  onError,
+}: {
+  onSuccess: (response: CredentialResponse) => void;
+  onError: () => void;
+}) {
+  const buttonRef = useRef<HTMLDivElement | null>(null);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  const { clientId, locale, scriptLoadedSuccessfully } = useGoogleOAuth();
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  useEffect(() => {
+    if (!scriptLoadedSuccessfully || !buttonRef.current) return;
+
+    const googleIdentity = window.google?.accounts?.id;
+    if (!googleIdentity) return;
+
+    window.__fluxGoogleCredentialHandler = (credentialResponse) => {
+      if (!credentialResponse.credential) {
+        onErrorRef.current();
+        return;
+      }
+
+      onSuccessRef.current(credentialResponse);
+    };
+
+    if (window.__fluxGoogleIdentityClientId !== clientId) {
+      googleIdentity.initialize({
+        client_id: clientId,
+        callback: (credentialResponse) => {
+          window.__fluxGoogleCredentialHandler?.(credentialResponse);
+        },
+      });
+      window.__fluxGoogleIdentityClientId = clientId;
+    }
+
+    buttonRef.current.replaceChildren();
+    googleIdentity.renderButton(buttonRef.current, {
+      theme: 'filled_black',
+      size: 'large',
+      width: '320',
+      locale,
+    });
+  }, [clientId, locale, scriptLoadedSuccessfully]);
+
+  return <div ref={buttonRef} className="min-h-10" />;
+}
+
 export default function LoginPage() {
-  const { loginUser, googleLoginUser } = useAuth();
+  const { loginUser, googleLoginUser, switchRememberedAccount } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const rememberedAccounts = useSyncExternalStore(
+    subscribeToRememberedAccounts,
+    getRememberedAccounts,
+    () => EMPTY_REMEMBERED_ACCOUNTS,
+  );
 
   const {
     register,
@@ -42,7 +151,7 @@ export default function LoginPage() {
       await loginUser({
         email: data.email,
         password: data.password,
-      });
+      }, { remember: rememberMe });
     } catch {
       // errors handled inside useAuth
     } finally {
@@ -50,7 +159,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleSuccess = async (
+  const handleGoogleSuccess = useCallback(async (
     credentialResponse: CredentialResponse
   ) => {
     try {
@@ -61,12 +170,22 @@ export default function LoginPage() {
         return;
       }
 
-      await googleLoginUser(credentialResponse.credential);
+      await googleLoginUser(credentialResponse.credential, {
+        remember: rememberMe,
+      });
     } catch (error) {
       console.error(error);
     } finally {
       setIsGoogleLoading(false);
     }
+  }, [googleLoginUser, rememberMe]);
+
+  const handleGoogleError = useCallback(() => {
+    toast.error('Google login failed');
+  }, []);
+
+  const handleForgetAccount = (accountId: string) => {
+    forgetRememberedAccount(accountId);
   };
 
   return (
@@ -130,6 +249,71 @@ export default function LoginPage() {
           <p className="text-center text-white/60 mb-8">
             Sign in to continue to FLUX
           </p>
+
+          {rememberedAccounts.length > 0 && (
+            <div className="mb-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-white/70">
+                  Remembered accounts
+                </p>
+                <span className="text-xs text-white/35">
+                  Click to switch
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {rememberedAccounts.map((account) => {
+                  const accountAvatar = buildAvatarSrc(account.user.avatar);
+
+                  return (
+                    <div
+                      key={account.id}
+                      className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => switchRememberedAccount(account)}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
+                          {accountAvatar ? (
+                            <Image
+                              src={accountAvatar}
+                              alt={account.user.username}
+                              width={40}
+                              height={40}
+                              unoptimized
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <FiUser className="h-4 w-4 text-white/65" />
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-white">
+                            {account.user.username}
+                          </p>
+                          <p className="truncate text-xs text-white/45">
+                            {account.user.email}
+                          </p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleForgetAccount(account.id)}
+                        className="rounded-full p-2 text-white/35 transition hover:bg-white/[0.08] hover:text-red-300"
+                        aria-label={`Forget ${account.user.username}`}
+                      >
+                        <FiTrash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Email */}
@@ -195,6 +379,8 @@ export default function LoginPage() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(event) => setRememberMe(event.target.checked)}
                   className="w-4 h-4 rounded border-white/20 bg-glass-light text-neon-cyan focus:ring-neon-cyan focus:ring-offset-0"
                 />
                 <span className="text-sm text-white/60">Remember me</span>
@@ -251,12 +437,9 @@ export default function LoginPage() {
                   </span>
                 </button>
               ) : (
-                <GoogleLogin
+                <FluxGoogleLoginButton
                   onSuccess={handleGoogleSuccess}
-                  onError={() => toast.error('Google login failed')}
-                  theme="filled_black"
-                  size="large"
-                  width="320"
+                  onError={handleGoogleError}
                 />
               )}
             </div>

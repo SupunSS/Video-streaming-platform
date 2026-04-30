@@ -17,6 +17,7 @@ type UploadMetadata = {
   language?: string;
   ageRating?: string;
   releaseYear?: number;
+  duration?: number;
   isFeatured?: boolean;
   seriesTitle?: string;
   seasonNumber?: number;
@@ -79,6 +80,7 @@ export const useUpload = () => {
         language: metadata.language?.trim() ?? "",
         ageRating: metadata.ageRating?.trim() ?? "",
         releaseYear: metadata.releaseYear,
+        duration: metadata.duration,
         isFeatured: Boolean(metadata.isFeatured),
         seriesTitle: metadata.seriesTitle?.trim() ?? "",
         seasonNumber: metadata.seasonNumber,

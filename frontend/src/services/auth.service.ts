@@ -20,6 +20,7 @@ export interface RegisterPayload {
   password: string;
   avatar?: string;
   accountType?: "user" | "studio";
+  studioAgreementAccepted?: boolean;
 }
 
 export interface LoginPayload {
