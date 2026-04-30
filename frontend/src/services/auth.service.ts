@@ -43,4 +43,12 @@ export const authService = {
     );
     return res.data;
   },
+
+  async googleLogin(credential: string): Promise<AuthResponse> {
+    const res = await axiosInstance.post(API_CONFIG.ENDPOINTS.AUTH.GOOGLE, {
+      credential,
+    });
+
+    return res.data;
+  },
 };

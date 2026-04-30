@@ -31,6 +31,19 @@ export const useAuth = () => {
     }
   };
 
+  const googleLoginUser = async (credential: string) => {
+    try {
+      const data = await authService.googleLogin(credential);
+      dispatch(setCredentials({ user: data.user, token: data.access_token }));
+      notify.success("Welcome back!");
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, "Google login failed");
+      notify.error(message);
+      throw err;
+    }
+  };
+
   const registerUser = async (payload: RegisterPayload) => {
     try {
       const data = await authService.register(payload);
@@ -55,6 +68,7 @@ export const useAuth = () => {
     token,
     isAuthenticated,
     loginUser,
+    googleLoginUser,
     registerUser,
     signOut,
   };

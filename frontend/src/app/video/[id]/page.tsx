@@ -488,10 +488,6 @@ export default function WatchPage() {
       </span>
     )}
   </div>
-
-  <p className="mt-1 text-sm leading-6 text-white/55">
-    Uploaded on {formatFullDate(video.createdAt)}
-  </p>
 </div>
                     </div>
 
