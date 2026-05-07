@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { Providers } from './providers';
+import Providers from "./providers";
 import { StreamVaultToastContainer } from '@/components/ui/CustomToast';
 
 export const metadata: Metadata = {
-  title: 'NEXUS - Video Streaming Platform',
+  title: 'Flux - Video Streaming Platform',
   description: 'Cloud-native video streaming platform',
 };
 

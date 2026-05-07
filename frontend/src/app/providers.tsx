@@ -1,8 +1,19 @@
-'use client';
+"use client";
 
-import { Provider } from 'react-redux';
-import { store } from '@/store';
+import { Provider } from "react-redux";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import { store } from "@/store";
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  return <Provider store={store}>{children}</Provider>;
+export default function Providers({ children }: { children: React.ReactNode }) {
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+  if (!googleClientId) {
+    throw new Error("Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID");
+  }
+
+  return (
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <Provider store={store}>{children}</Provider>
+    </GoogleOAuthProvider>
+  );
 }

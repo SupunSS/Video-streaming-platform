@@ -24,8 +24,21 @@ type RawVideo = {
   description?: string;
   thumbnailUrl: string;
   posterUrl?: string;
+  type?: 'movie' | 'tv_show';
+  genres?: string[];
+  categories?: string[];
+  language?: string;
+  ageRating?: string;
+  releaseYear?: number;
+  isFeatured?: boolean;
+  seriesTitle?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  episodeTitle?: string;
   duration?: number;
   views?: number;
+  ratingsCount?: number;
+  averageRating?: number;
   createdAt: string;
   videoUrl: string;
   user?: {
@@ -41,6 +54,19 @@ const mapToVideo = (video: RawVideo, index: number): Video => ({
   title: video.title,
   description: video.description || '',
   thumbnail: buildUrl(video.posterUrl || video.thumbnailUrl),
+  thumbnailUrl: video.thumbnailUrl,
+  posterUrl: video.posterUrl,
+  type: video.type ?? 'movie',
+  genres: video.genres ?? [],
+  categories: video.categories ?? [],
+  language: video.language,
+  ageRating: video.ageRating,
+  releaseYear: video.releaseYear,
+  isFeatured: video.isFeatured,
+  seriesTitle: video.seriesTitle,
+  seasonNumber: video.seasonNumber,
+  episodeNumber: video.episodeNumber,
+  episodeTitle: video.episodeTitle,
   duration: video.duration || 0,
   views: video.views || 0,
   channel: video.user?.username || 'FLUX Creator',
@@ -51,9 +77,14 @@ const mapToVideo = (video: RawVideo, index: number): Video => ({
   }),
   hlsUrl: buildUrl(video.videoUrl),
   status: 'ready',
-  rating: Number((8.1 + (index % 5) * 0.2).toFixed(1)),
-  year: 2024 - (index % 4),
-  genre: ['Action', 'Thriller', 'Drama', 'Sci-Fi', 'Fantasy', 'Crime'][index % 6],
+  rating:
+    (video.ratingsCount ?? 0) > 0 && typeof video.averageRating === 'number'
+      ? Number(video.averageRating.toFixed(1))
+      : null,
+  year: video.releaseYear ?? 2024 - (index % 4),
+  genre:
+    video.genres?.[0] ??
+    ['Action', 'Thriller', 'Drama', 'Sci-Fi', 'Fantasy', 'Crime'][index % 6],
   progress: ((index + 2) * 11) % 85,
 });
 

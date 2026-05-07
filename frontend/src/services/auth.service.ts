@@ -6,6 +6,7 @@ export interface AuthUser {
   email: string;
   username: string;
   avatar: string;
+  accountType?: "user" | "studio";
 }
 
 export interface AuthResponse {
@@ -18,6 +19,8 @@ export interface RegisterPayload {
   email: string;
   password: string;
   avatar?: string;
+  accountType?: "user" | "studio";
+  studioAgreementAccepted?: boolean;
 }
 
 export interface LoginPayload {
@@ -39,6 +42,14 @@ export const authService = {
       API_CONFIG.ENDPOINTS.AUTH.LOGIN,
       payload,
     );
+    return res.data;
+  },
+
+  async googleLogin(credential: string): Promise<AuthResponse> {
+    const res = await axiosInstance.post(API_CONFIG.ENDPOINTS.AUTH.GOOGLE, {
+      credential,
+    });
+
     return res.data;
   },
 };

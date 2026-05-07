@@ -14,7 +14,7 @@ export const useVideos = () => {
       try {
         const data = await videoService.getAll();
         setVideos(data);
-      } catch (err: any) {
+      } catch {
         setError("Failed to load videos");
         notify.error("Failed to load videos");
       } finally {

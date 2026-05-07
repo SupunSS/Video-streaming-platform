@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setCredentials, logout } from "@/store/slices/authSlice";
 import {
@@ -9,6 +10,15 @@ import {
 } from "@/services/auth.service";
 import { useRouter } from "next/navigation";
 import { notify } from "@/components/ui/CustomToast";
+import { getErrorMessage } from "@/lib/api-error";
+import {
+  rememberAccount,
+  RememberedAccount,
+} from "@/lib/remembered-accounts";
+
+type LoginOptions = {
+  remember?: boolean;
+};
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
@@ -17,44 +27,72 @@ export const useAuth = () => {
     (state) => state.auth,
   );
 
-  const loginUser = async (payload: LoginPayload) => {
+  const loginUser = useCallback(async (payload: LoginPayload, options?: LoginOptions) => {
     try {
       const data = await authService.login(payload);
       dispatch(setCredentials({ user: data.user, token: data.access_token }));
+      if (options?.remember) {
+        rememberAccount(data.user, data.access_token);
+      }
       notify.success("Welcome back!");
       router.push("/");
-    } catch (err: any) {
-      const message = err.response?.data?.message || "Invalid credentials";
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, "Invalid credentials");
       notify.error(message);
       throw err;
     }
-  };
+  }, [dispatch, router]);
 
-  const registerUser = async (payload: RegisterPayload) => {
+  const googleLoginUser = useCallback(async (credential: string, options?: LoginOptions) => {
+    try {
+      const data = await authService.googleLogin(credential);
+      dispatch(setCredentials({ user: data.user, token: data.access_token }));
+      if (options?.remember) {
+        rememberAccount(data.user, data.access_token);
+      }
+      notify.success("Welcome back!");
+      router.push(data.user.accountType === "studio" ? "/dashboard" : "/");
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, "Google login failed");
+      notify.error(message);
+      throw err;
+    }
+  }, [dispatch, router]);
+
+  const registerUser = useCallback(async (payload: RegisterPayload) => {
     try {
       const data = await authService.register(payload);
       dispatch(setCredentials({ user: data.user, token: data.access_token }));
       notify.success("Account created!");
       router.push("/");
-    } catch (err: any) {
-      const message = err.response?.data?.message || "Registration failed";
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, "Registration failed");
       notify.error(message);
       throw err;
     }
-  };
+  }, [dispatch, router]);
 
-  const signOut = () => {
+  const signOut = useCallback(() => {
     dispatch(logout());
     notify.success("Signed out");
     router.push("/");
-  };
+  }, [dispatch, router]);
+
+  const switchRememberedAccount = useCallback((account: RememberedAccount) => {
+    dispatch(setCredentials({ user: account.user, token: account.token }));
+    rememberAccount(account.user, account.token);
+    notify.success(`Switched to ${account.user.username}`);
+    router.push(account.user.accountType === "studio" ? "/dashboard" : "/");
+  }, [dispatch, router]);
 
   return {
     user,
     token,
     isAuthenticated,
     loginUser,
+    googleLoginUser,
     registerUser,
+    switchRememberedAccount,
     signOut,
   };
 };

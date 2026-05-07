@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -6,19 +7,19 @@ import {
   Patch,
   Post,
   Req,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { Request } from 'express';
-
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { RateVideoDto } from './dto/rate-video.dto';
 import { VideoService } from './video.service';
 
-type AuthenticatedRequest = Request & {
+type AuthenticatedRequest = {
   user: {
     userId: string;
-    email: string;
   };
 };
 
@@ -26,29 +27,76 @@ type AuthenticatedRequest = Request & {
 export class VideoController {
   constructor(private readonly videoService: VideoService) {}
 
-  @UseGuards(JwtAuthGuard)
-  @Post()
-  create(
-    @Body() createVideoDto: CreateVideoDto,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    return this.videoService.create(createVideoDto, req.user);
-  }
-
   @Get()
-  findAll() {
-    return this.videoService.findAll();
+  getAll() {
+    return this.videoService.getAll();
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  findMyVideos(@Req() req: AuthenticatedRequest) {
-    return this.videoService.findMyVideos(req.user.userId);
+  getMyVideos(@Req() req: AuthenticatedRequest) {
+    return this.videoService.getMyVideos(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/my-rating')
+  getMyRating(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.videoService.getMyRating(id, req.user.userId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  getOne(@Param('id') id: string) {
     return this.videoService.findOne(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post()
+  createVideo(@Body() dto: CreateVideoDto, @Req() req: AuthenticatedRequest) {
+    if (!dto.videoUrl) {
+      throw new BadRequestException('Video file URL is required');
+    }
+
+    return this.videoService.createVideo({
+      dto,
+      ownerId: req.user.userId,
+      videoUrl: dto.videoUrl,
+      thumbnailUrl: dto.thumbnailUrl || '/uploads/thumbnails/default.jpg',
+      posterUrl: dto.posterUrl,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('upload')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'video', maxCount: 1 },
+      { name: 'thumbnail', maxCount: 1 },
+    ]),
+  )
+  async uploadVideo(
+    @UploadedFiles()
+    files: {
+      video?: Express.Multer.File[];
+      thumbnail?: Express.Multer.File[];
+    },
+    @Body() dto: CreateVideoDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const videoFile = files.video?.[0];
+    const thumbnailFile = files.thumbnail?.[0];
+
+    const videoUrl = videoFile ? `/uploads/videos/${videoFile.filename}` : '';
+    const thumbnailUrl = thumbnailFile
+      ? `/uploads/thumbnails/${thumbnailFile.filename}`
+      : '';
+
+    return this.videoService.createVideo({
+      dto,
+      ownerId: req.user.userId,
+      videoUrl,
+      thumbnailUrl,
+      posterUrl: dto.posterUrl,
+    });
   }
 
   @Patch(':id/views')
@@ -60,9 +108,9 @@ export class VideoController {
   @Patch(':id/rating')
   rateVideo(
     @Param('id') id: string,
-    @Body() rateVideoDto: RateVideoDto,
+    @Body() dto: RateVideoDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.videoService.rateVideo(id, req.user.userId, rateVideoDto.value);
+    return this.videoService.rateVideo(id, req.user.userId, dto.value);
   }
 }

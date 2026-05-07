@@ -10,13 +10,14 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@react-oauth/google": "^0.13.5",
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.15.1",
     "framer-motion": "^12.38.0",
     "hls.js": "^1.6.16",
-    "next": "16.2.4",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "next": "^15.1.0",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
     "react-dropzone": "^15.0.0",
     "react-easy-crop": "^5.5.7",
     "react-hook-form": "^7.72.1",
@@ -24,6 +25,10 @@
     "react-icons": "^5.6.0",
     "react-redux": "^9.2.0",
     "zod": "^4.3.6"
+  },
+  "optionalDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "4.2.2",
+    "lightningcss-linux-x64-gnu": "1.32.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -33,7 +38,7 @@
     "autoprefixer": "^10.5.0",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "^16.2.4",
     "postcss": "^8.5.10",
     "tailwindcss": "^4.2.2",
     "typescript": "^5"

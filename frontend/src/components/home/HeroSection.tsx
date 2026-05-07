@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { FiPlay, FiInfo, FiVolume2, FiVolumeX } from 'react-icons/fi';
 import { Video } from '@/types/video.types';
@@ -13,24 +14,29 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
   const [isMuted, setIsMuted] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [particles, setParticles] = useState<Array<{ x: number; y: number; duration: number; delay: number }>>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
   const scale = useTransform(scrollY, [0, 300], [1, 0.9]);
+  const ratingLabel =
+    video.rating !== null && video.rating !== undefined && video.rating !== ''
+      ? video.rating
+      : 'No ratings yet';
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-    setParticles(
-      [...Array(20)].map(() => ({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
-        duration: 2 + Math.random() * 3,
-        delay: Math.random() * 2,
-      }))
-    );
+    const frame = window.requestAnimationFrame(() => {
+      setParticles(
+        [...Array(20)].map(() => ({
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+          duration: 2 + Math.random() * 3,
+          delay: Math.random() * 2,
+        }))
+      );
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   return (
@@ -87,7 +93,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="flex items-center justify-center gap-4 text-white/80 text-sm md:text-base"
           >
-            <span className="flex items-center gap-1"><span className="text-neon-cyan">★</span> {video.rating || '8.5'}</span>
+            <span className="flex items-center gap-1"><span className="text-neon-cyan">★</span> {ratingLabel}</span>
             <span>•</span>
             <span>{video.year || '2024'}</span>
             <span>•</span>
@@ -113,10 +119,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
             transition={{ delay: 0.6, duration: 0.5 }}
             className="flex items-center justify-center gap-4 pt-4"
           >
-            <button className="btn-neon flex items-center gap-2 px-8 py-3 text-lg">
+            <Link
+              href={`/video/${video.id}`}
+              className="btn-neon flex items-center gap-2 px-8 py-3 text-lg"
+            >
               <FiPlay className="w-5 h-5" />
               <span>Play</span>
-            </button>
+            </Link>
             <button className="px-6 py-3 bg-glass-light backdrop-blur-xl border border-white/20 rounded-lg hover:bg-glass-medium hover:border-white/40 transition-all duration-300 flex items-center gap-2 text-lg">
               <FiInfo className="w-5 h-5" />
               <span>More Info</span>
@@ -146,7 +155,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
       {/* Extra bottom fade layer for seamless blend */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-dark-500 to-transparent pointer-events-none" />
 
-      {mounted && isHovered && (
+      {particles.length > 0 && isHovered && (
         <div className="absolute inset-0 pointer-events-none">
           {particles.map((particle, i) => (
             <motion.div

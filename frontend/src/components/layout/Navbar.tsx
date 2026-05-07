@@ -1,7 +1,6 @@
-// frontend/src/components/layout/Navbar.tsx
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -11,6 +10,7 @@ import {
   FiGrid,
   FiLogOut,
   FiSearch,
+  FiSettings,
   FiSliders,
   FiUpload,
   FiUser,
@@ -20,7 +20,14 @@ import {
 import { API_CONFIG } from '@/config/api.config';
 import { userService } from '@/services/user.service';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { logout, setUser } from '@/store/slices/authSlice';
+import { logout, setCredentials, setUser } from '@/store/slices/authSlice';
+import {
+  EMPTY_REMEMBERED_ACCOUNTS,
+  getRememberedAccounts,
+  RememberedAccount,
+  rememberAccount,
+  subscribeToRememberedAccounts,
+} from '@/lib/remembered-accounts';
 
 const GENRES = [
   'All',
@@ -39,9 +46,37 @@ const GENRES = [
 
 const NAV_ITEMS = [
   { label: 'Home', href: '/' },
+  { label: 'Films', href: '/films' },
+  { label: 'TV Shows', href: '/tv-shows' },
   { label: 'Library', href: '/library' },
   { label: 'Subscriptions', href: '/subscriptions' },
 ];
+
+const subscribeToClient = () => () => undefined;
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+const SEARCH_FILTERS_RESET_EVENT = 'search-filters-reset';
+
+const getUrlSearchQuery = () => {
+  if (typeof window === 'undefined') return '';
+  return new URLSearchParams(window.location.search).get('q') ?? '';
+};
+
+const getUrlGenres = () => {
+  if (typeof window === 'undefined') return [];
+
+  return new URLSearchParams(window.location.search)
+    .getAll('genre')
+    .flatMap((genre) => genre.split(','))
+    .filter((genre) => genre && genre !== 'All');
+};
+
+const buildAvatarSrc = (avatar?: string) => {
+  if (!avatar) return '';
+  return avatar.startsWith('http')
+    ? avatar
+    : `${API_CONFIG.BASE_URL.replace(/\/$/, '')}/${avatar.replace(/^\/+/, '')}`;
+};
 
 export const Navbar = () => {
   const pathname = usePathname();
@@ -51,31 +86,49 @@ export const Navbar = () => {
 
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
-  const [mounted, setMounted] = useState(false);
+  const isStudio = user?.accountType === 'studio';
+
+  const mounted = useSyncExternalStore(
+    subscribeToClient,
+    getClientSnapshot,
+    getServerSnapshot,
+  );
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeGenre, setActiveGenre] = useState('All');
+  const [searchQuery, setSearchQuery] = useState(getUrlSearchQuery);
+  const [activeGenres, setActiveGenres] = useState<string[]>(getUrlGenres);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const rememberedAccounts = useSyncExternalStore(
+    subscribeToRememberedAccounts,
+    getRememberedAccounts,
+    () => EMPTY_REMEMBERED_ACCOUNTS,
+  );
 
-  const avatarSrc = user?.avatar
-    ? user.avatar.startsWith('http')
-      ? user.avatar
-      : `${API_CONFIG.BASE_URL.replace(/\/$/, '')}/${user.avatar.replace(/^\/+/, '')}`
-    : '';
+  const avatarSrc = buildAvatarSrc(user?.avatar);
+  const currentAccountId = user?.id || user?.email;
+  const quickLoginAccounts = rememberedAccounts.filter(
+    (account) => !isAuthenticated || account.id !== currentAccountId,
+  );
+
+  const showSearchControls =
+    pathname === '/' ||
+    pathname === '/films' ||
+    pathname.startsWith('/films/') ||
+    pathname === '/tv-shows' ||
+    pathname.startsWith('/tv-shows/') ||
+    pathname === '/dashboard' ||
+    pathname.startsWith('/dashboard/') ||
+    pathname === '/library' ||
+    pathname.startsWith('/library/') ||
+    pathname === '/search' ||
+    pathname.startsWith('/video/') ||
+    pathname.startsWith('/watch/');
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 8);
-    };
-
+    const handleScroll = () => setIsScrolled(window.scrollY > 8);
     handleScroll();
     window.addEventListener('scroll', handleScroll);
-
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -86,15 +139,26 @@ export const Navbar = () => {
         setDropdownOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
+    const handleResetSearchFilters = () => {
+      setSearchQuery('');
+      setActiveGenres([]);
+      setFiltersOpen(false);
+    };
+
+    window.addEventListener(SEARCH_FILTERS_RESET_EVENT, handleResetSearchFilters);
+    return () => {
+      window.removeEventListener(SEARCH_FILTERS_RESET_EVENT, handleResetSearchFilters);
+    };
+  }, []);
+
+  useEffect(() => {
     const hydrateUser = async () => {
       if (!mounted || !isAuthenticated || user) return;
-
       try {
         const currentUser = await userService.getMe();
         dispatch(setUser(currentUser));
@@ -102,48 +166,61 @@ export const Navbar = () => {
         dispatch(logout());
       }
     };
-
     void hydrateUser();
   }, [mounted, isAuthenticated, user, dispatch]);
 
+  const navigateToSearch = React.useCallback(
+    (query: string, genres: string[], replace = pathname === '/search') => {
+      const params = new URLSearchParams();
+      if (query) params.set('q', query);
+      genres.forEach((genre) => params.append('genre', genre));
+
+      const path = `/search${params.toString() ? `?${params.toString()}` : ''}`;
+      if (replace) {
+        router.replace(path);
+      } else {
+        router.push(path);
+      }
+    },
+    [pathname, router],
+  );
+
+  useEffect(() => {
+    if (pathname !== '/search') return;
+
+    const timeout = window.setTimeout(() => {
+      navigateToSearch(searchQuery.trim(), activeGenres, true);
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [activeGenres, navigateToSearch, pathname, searchQuery]);
+
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     const query = searchQuery.trim();
-    if (!query) return;
-
-    const params = new URLSearchParams({ q: query });
-
-    if (activeGenre !== 'All') {
-      params.set('genre', activeGenre);
-    }
-
-    router.push(`/search?${params.toString()}`);
+    if (!query && activeGenres.length === 0) return;
+    navigateToSearch(query, activeGenres, false);
   };
 
   const handleGenreClick = (genre: string) => {
-    setActiveGenre(genre);
+    const nextGenres =
+      genre === 'All'
+        ? []
+        : activeGenres.includes(genre)
+          ? activeGenres.filter((activeGenre) => activeGenre !== genre)
+          : [...activeGenres, genre];
 
-    const query = searchQuery.trim();
-    if (!query) return;
-
-    const params = new URLSearchParams({ q: query });
-
-    if (genre !== 'All') {
-      params.set('genre', genre);
-    }
-
-    router.push(`/search?${params.toString()}`);
+    setActiveGenres(nextGenres);
+    navigateToSearch(searchQuery.trim(), nextGenres);
   };
 
   const clearSearch = () => {
     setSearchQuery('');
-    setActiveGenre('All');
+    setActiveGenres([]);
     setFiltersOpen(false);
-  };
-
-  const toggleFilters = () => {
-    setFiltersOpen((prev) => !prev);
+    if (pathname === '/search') {
+      router.replace('/search');
+    }
   };
 
   const handleLogout = () => {
@@ -152,7 +229,93 @@ export const Navbar = () => {
     router.push('/');
   };
 
-  const hasActiveFilter = activeGenre !== 'All';
+  const handleRememberedAccountLogin = (account: RememberedAccount) => {
+    dispatch(setCredentials({ user: account.user, token: account.token }));
+    rememberAccount(account.user, account.token);
+    setDropdownOpen(false);
+    router.push(account.user.accountType === 'studio' ? '/dashboard' : '/');
+  };
+
+  const studioQuickLoginAccounts = quickLoginAccounts.filter(
+    (account) => account.user.accountType === 'studio',
+  );
+  const viewerQuickLoginAccounts = quickLoginAccounts.filter(
+    (account) => account.user.accountType !== 'studio',
+  );
+
+  const renderQuickLoginAccount = (account: RememberedAccount) => {
+    const accountAvatar = buildAvatarSrc(account.user.avatar);
+
+    return (
+      <button
+        key={account.id}
+        type="button"
+        onClick={() => handleRememberedAccountLogin(account)}
+        className="flex w-full min-w-0 items-center gap-3 rounded-2xl px-4 py-3 text-left transition hover:bg-white/[0.06]"
+      >
+        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
+          {accountAvatar ? (
+            <Image
+              src={accountAvatar}
+              alt={account.user.username}
+              fill
+              sizes="36px"
+              unoptimized
+              className="object-cover"
+            />
+          ) : (
+            <FiUser className="h-4 w-4 text-white/60" />
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-white/80">
+            {account.user.username}
+          </p>
+          <p className="truncate text-xs text-white/40">
+            {account.user.email}
+          </p>
+        </div>
+      </button>
+    );
+  };
+
+  const renderQuickLoginCategory = (
+    label: string,
+    accounts: RememberedAccount[],
+  ) => {
+    if (accounts.length === 0) return null;
+
+    return (
+      <div className="space-y-1">
+        <p className="px-4 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300/70">
+          {label}
+        </p>
+        {accounts.slice(0, 4).map(renderQuickLoginAccount)}
+      </div>
+    );
+  };
+
+  const renderQuickLoginGroups = (title: string) => {
+    if (quickLoginAccounts.length === 0) return null;
+
+    return (
+      <div className="mb-2 space-y-2 border-b border-white/8 pb-2">
+        <p className="px-4 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          {title}
+        </p>
+        {renderQuickLoginCategory('Studios', studioQuickLoginAccounts)}
+        {renderQuickLoginCategory('Viewer accounts', viewerQuickLoginAccounts)}
+      </div>
+    );
+  };
+
+  const hasActiveFilter = activeGenres.length > 0;
+  const filterLabel =
+    activeGenres.length === 0
+      ? 'Filter'
+      : activeGenres.length === 1
+        ? activeGenres[0]
+        : `${activeGenres.length} genres`;
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
@@ -166,19 +329,19 @@ export const Navbar = () => {
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-20 items-center justify-between gap-4">
+
+       
           <div className="flex min-w-0 items-center gap-8">
             <Link href="/" className="flex shrink-0 items-center gap-3">
               <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] shadow-[0_0_30px_rgba(255,255,255,0.06)]">
                 <Image
-                  src="/images/Flux_Logo.png"
-                  alt="Flux Logo"
-                  width={28}
-                  height={28}
-                  className="object-contain"
-                  priority
-                />
+  src="/images/Flux_Logo.png"
+  alt="Logo"
+  width={120}
+  height={40}
+  className="h-10 w-auto object-contain"
+/>
               </div>
-
               <span className="bg-gradient-to-r from-white via-sky-200 to-blue-400 bg-clip-text text-xl font-black tracking-[0.18em] text-transparent">
                 FLUX
               </span>
@@ -187,7 +350,6 @@ export const Navbar = () => {
             <nav className="hidden items-center gap-1 md:flex">
               {NAV_ITEMS.map((item) => {
                 const isActive = pathname === item.href;
-
                 return (
                   <Link
                     key={item.href}
@@ -199,7 +361,6 @@ export const Navbar = () => {
                     }`}
                   >
                     {item.label}
-
                     {isActive && mounted && (
                       <motion.span
                         layoutId="navbar-active-pill"
@@ -213,7 +374,11 @@ export const Navbar = () => {
             </nav>
           </div>
 
+       
           <div className="flex min-w-0 items-center justify-end gap-2 sm:gap-3">
+
+          
+            {showSearchControls && (
             <form
               onSubmit={handleSearch}
               className={`hidden items-center transition-all duration-300 md:flex ${
@@ -222,7 +387,6 @@ export const Navbar = () => {
             >
               <div className="relative w-full">
                 <FiSearch className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/35" />
-
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
@@ -231,7 +395,6 @@ export const Navbar = () => {
                   onFocus={() => setSearchFocused(true)}
                   onBlur={() => setSearchFocused(false)}
                 />
-
                 {searchQuery && (
                   <button
                     type="button"
@@ -241,10 +404,9 @@ export const Navbar = () => {
                     <FiX className="h-4 w-4" />
                   </button>
                 )}
-
                 <button
                   type="button"
-                  onClick={toggleFilters}
+                  onClick={() => setFiltersOpen((prev) => !prev)}
                   className={`absolute right-2 top-1/2 inline-flex -translate-y-1/2 items-center gap-2 rounded-full px-2.5 py-1.5 text-xs font-medium transition-all ${
                     filtersOpen || hasActiveFilter
                       ? 'bg-sky-400/15 text-sky-200'
@@ -252,19 +414,24 @@ export const Navbar = () => {
                   }`}
                 >
                   <FiSliders className="h-3.5 w-3.5" />
-                  {!filtersOpen && hasActiveFilter ? activeGenre : 'Filter'}
+                  {!filtersOpen && hasActiveFilter ? filterLabel : 'Filter'}
                 </button>
               </div>
             </form>
+            )}
 
-            <Link
-              href="/upload"
-              className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/[0.1] hover:text-white sm:inline-flex"
-            >
-              <FiUpload className="h-4 w-4" />
-              Upload
-            </Link>
+           
+            {mounted && isAuthenticated && isStudio && (
+              <Link
+                href="/upload"
+                className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/[0.1] hover:text-white sm:inline-flex"
+              >
+                <FiUpload className="h-4 w-4" />
+                Upload
+              </Link>
+            )}
 
+            {/* Bell */}
             <button
               type="button"
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/65 transition hover:bg-white/[0.1] hover:text-white"
@@ -272,6 +439,7 @@ export const Navbar = () => {
               <FiBell className="h-4 w-4" />
             </button>
 
+            {/* Avatar + Dropdown */}
             <div ref={dropdownRef} className="relative">
               <button
                 type="button"
@@ -308,6 +476,7 @@ export const Navbar = () => {
                   >
                     {mounted && isAuthenticated ? (
                       <>
+                        {/* User info header */}
                         <div className="border-b border-white/8 px-5 py-4">
                           <div className="flex items-center gap-3">
                             <div className="relative h-12 w-12 overflow-hidden rounded-full border border-white/10 bg-white/[0.05]">
@@ -325,34 +494,56 @@ export const Navbar = () => {
                                 </div>
                               )}
                             </div>
-
                             <div className="min-w-0">
                               <p className="truncate text-sm font-semibold text-white">
                                 {user?.username}
                               </p>
                               <p className="truncate text-xs text-white/45">{user?.email}</p>
+                              {isStudio && (
+                                <span className="mt-0.5 inline-block rounded-full bg-sky-400/15 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                                  Studio
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
 
+                        {/* Menu items */}
                         <div className="p-2">
+                          {renderQuickLoginGroups('Switch account')}
+
+                          {isStudio && (
+                            <Link
+                              href="/dashboard"
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+                            >
+                              <FiGrid className="h-4 w-4" />
+                              Dashboard
+                            </Link>
+                          )}
+
+                 
                           <Link
-                            href="/dashboard"
+                            href="/settings"
                             onClick={() => setDropdownOpen(false)}
                             className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
                           >
-                            <FiGrid className="h-4 w-4" />
-                            Dashboard
+                            <FiSettings className="h-4 w-4" />
+                            Settings
                           </Link>
 
-                          <Link
-                            href="/upload"
-                            onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
-                          >
-                            <FiUpload className="h-4 w-4" />
-                            Upload Video
-                          </Link>
+                          {/* Upload — studios only */}
+                          {isStudio && (
+                            <Link
+                              href="/upload"
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+                            >
+                              <FiUpload className="h-4 w-4" />
+                              Upload Video
+                            </Link>
+                          )}
 
                           <button
                             type="button"
@@ -366,6 +557,8 @@ export const Navbar = () => {
                       </>
                     ) : (
                       <div className="p-2">
+                        {renderQuickLoginGroups('Login with existing account')}
+
                         <Link
                           href="/login"
                           onClick={() => setDropdownOpen(false)}
@@ -374,7 +567,6 @@ export const Navbar = () => {
                           <FiUser className="h-4 w-4" />
                           Sign In
                         </Link>
-
                         <Link
                           href="/register"
                           onClick={() => setDropdownOpen(false)}
@@ -392,8 +584,9 @@ export const Navbar = () => {
           </div>
         </div>
 
+        {/* Genre filter bar */}
         <AnimatePresence>
-          {filtersOpen && (
+          {showSearchControls && filtersOpen && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -404,8 +597,10 @@ export const Navbar = () => {
               <div className="overflow-x-auto">
                 <div className="flex min-w-max items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-2 backdrop-blur-2xl">
                   {GENRES.map((genre) => {
-                    const isActive = activeGenre === genre;
-
+                    const isActive =
+                      genre === 'All'
+                        ? activeGenres.length === 0
+                        : activeGenres.includes(genre);
                     return (
                       <motion.button
                         key={genre}

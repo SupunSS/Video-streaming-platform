@@ -1,12 +1,15 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { videoService, VideoResponse } from '@/services/video.service';
+import { userService } from '@/services/user.service';
 import { API_CONFIG } from '@/config/api.config';
 import { Video } from '@/types/video.types';
+import { getErrorMessage } from '@/lib/api-error';
 
 const mapToVideo = (v: VideoResponse): Video => ({
   id: v._id,
@@ -27,6 +30,9 @@ const mapToVideo = (v: VideoResponse): Video => ({
     ? v.videoUrl
     : `${API_CONFIG.BASE_URL}${v.videoUrl}`,
   status: 'ready',
+  rating: v.ratingsCount > 0 ? Number(v.averageRating.toFixed(1)) : null,
+  year: v.releaseYear,
+  genre: v.genres?.[0],
 });
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
@@ -61,6 +67,8 @@ function VideoCard({
   onDelete: (id: string) => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const duration = video.duration ?? 0;
+  const views = video.views ?? 0;
 
   return (
     <div
@@ -75,10 +83,13 @@ function VideoCard({
       {/* Thumbnail */}
       <div className="relative aspect-video overflow-hidden bg-black/40">
         {video.thumbnail ? (
-          <img
+          <Image
             src={video.thumbnail}
             alt={video.title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fill
+            sizes="(min-width: 1536px) 25vw, (min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+            unoptimized
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -117,9 +128,9 @@ function VideoCard({
         </div>
 
         {/* Duration badge */}
-        {video.duration > 0 && (
+        {duration > 0 && (
           <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-xs text-white/80 font-medium tracking-wide">
-            {Math.floor(video.duration / 60)}:{String(video.duration % 60).padStart(2, '0')}
+            {Math.floor(duration / 60)}:{String(duration % 60).padStart(2, '0')}
           </span>
         )}
 
@@ -129,7 +140,7 @@ function VideoCard({
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
-          {video.views}
+          {views}
         </span>
       </div>
 
@@ -164,14 +175,23 @@ function VideoCard({
 
 // ─── Hero Banner ──────────────────────────────────────────────────────────────
 function HeroBanner({ video }: { video: Video }) {
+  const ratingLabel =
+    video.rating !== null && video.rating !== undefined && video.rating !== ''
+      ? video.rating
+      : 'No ratings yet';
+
   return (
     <div className="relative w-full overflow-hidden" style={{ height: '420px' }}>
       {/* Background image */}
       {video.thumbnail && (
-        <img
+        <Image
           src={video.thumbnail}
           alt={video.title}
-          className="absolute inset-0 h-full w-full object-cover"
+          fill
+          sizes="100vw"
+          priority
+          unoptimized
+          className="object-cover"
         />
       )}
 
@@ -188,7 +208,7 @@ function HeroBanner({ video }: { video: Video }) {
             <svg className="h-3 w-3 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
-            <span className="text-white font-medium">8.5</span>
+            <span className="text-white font-medium">{ratingLabel}</span>
           </span>
           <span className="text-white/30">•</span>
           <span>2024</span>
@@ -293,10 +313,14 @@ export default function DashboardPage() {
   const featuredVideo = videos[0] ?? null;
 
   // Sort copies for sections
+  const getUploadTime = (video: Video) =>
+    video.uploadedAt ? new Date(video.uploadedAt).getTime() : 0;
   const recentVideos = [...videos].sort(
-    (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+    (a, b) => getUploadTime(b) - getUploadTime(a),
   );
-  const popularVideos = [...videos].sort((a, b) => b.views - a.views);
+  const popularVideos = [...videos].sort(
+    (a, b) => (b.views ?? 0) - (a.views ?? 0),
+  );
 
   useEffect(() => {
     const token =
@@ -308,10 +332,16 @@ export default function DashboardPage() {
 
     const fetchMyVideos = async () => {
       try {
+        const currentUser = await userService.getMe();
+        if (currentUser.accountType !== 'studio') {
+          router.replace('/');
+          return;
+        }
+
         const data = await videoService.getMyVideos();
         setRawVideos(data);
-      } catch (err: any) {
-        setError(err?.response?.data?.message || 'Failed to load dashboard');
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, 'Failed to load dashboard'));
       } finally {
         setLoading(false);
       }
@@ -405,7 +435,7 @@ export default function DashboardPage() {
             />
             <StatCard
               label="Total Views"
-              value={videos.reduce((s, v) => s + v.views, 0).toLocaleString()}
+              value={videos.reduce((s, v) => s + (v.views ?? 0), 0).toLocaleString()}
               icon={
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -415,7 +445,7 @@ export default function DashboardPage() {
             />
             <StatCard
               label="Most Viewed"
-              value={popularVideos[0]?.title.slice(0, 14) + '…' ?? '—'}
+              value={popularVideos[0] ? `${popularVideos[0].title.slice(0, 14)}...` : '-'}
               icon={
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
