@@ -14,7 +14,6 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
   const [isMuted, setIsMuted] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [particles, setParticles] = useState<Array<{ x: number; y: number; duration: number; delay: number }>>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
@@ -26,15 +25,18 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
       : 'No ratings yet';
 
   useEffect(() => {
-    setMounted(true);
-    setParticles(
-      [...Array(20)].map(() => ({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
-        duration: 2 + Math.random() * 3,
-        delay: Math.random() * 2,
-      }))
-    );
+    const frame = window.requestAnimationFrame(() => {
+      setParticles(
+        [...Array(20)].map(() => ({
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+          duration: 2 + Math.random() * 3,
+          delay: Math.random() * 2,
+        }))
+      );
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   return (
@@ -153,7 +155,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
       {/* Extra bottom fade layer for seamless blend */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-dark-500 to-transparent pointer-events-none" />
 
-      {mounted && isHovered && (
+      {particles.length > 0 && isHovered && (
         <div className="absolute inset-0 pointer-events-none">
           {particles.map((particle, i) => (
             <motion.div
