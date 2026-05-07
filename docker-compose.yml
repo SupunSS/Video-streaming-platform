@@ -1,0 +1,48 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: streamvault-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: streamvault-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      MONGODB_URI: mongodb://mongo:27017/streamvault
+      JWT_SECRET: your_super_secret_key_here
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-1054289478784-f1urdo8r4ihbf2k07eo5khvlc6v8trp4.apps.googleusercontent.com}
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      - mongo
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3001
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-1054289478784-f1urdo8r4ihbf2k07eo5khvlc6v8trp4.apps.googleusercontent.com}
+    container_name: streamvault-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-1054289478784-f1urdo8r4ihbf2k07eo5khvlc6v8trp4.apps.googleusercontent.com}
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
+  backend_uploads:

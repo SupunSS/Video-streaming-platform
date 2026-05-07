@@ -26,7 +26,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
       : 'No ratings yet';
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     setParticles(
       [...Array(20)].map(() => ({
