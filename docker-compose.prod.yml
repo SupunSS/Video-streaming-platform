@@ -12,6 +12,15 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     volumes:
       - backend_uploads:/app/uploads
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          node -e "const http=require('http');const req=http.get('http://127.0.0.1:3001/videos',res=>process.exit(res.statusCode>=200&&res.statusCode<500?0:1));req.on('error',()=>process.exit(1));req.setTimeout(5000,()=>{req.destroy();process.exit(1);});"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   frontend:
     image: ghcr.io/supunss/flux-frontend:latest
@@ -23,7 +32,17 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          node -e "const http=require('http');const req=http.get('http://127.0.0.1:3000',res=>process.exit(res.statusCode>=200&&res.statusCode<500?0:1));req.on('error',()=>process.exit(1));req.setTimeout(5000,()=>{req.destroy();process.exit(1);});"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   backend_uploads:
