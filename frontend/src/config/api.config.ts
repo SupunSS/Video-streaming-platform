@@ -1,5 +1,48 @@
+const DEFAULT_API_PORT = "3001";
+const DEFAULT_LOCAL_API_URL = `http://localhost:${DEFAULT_API_PORT}`;
+
+const stripTrailingSlash = (url: string) => url.replace(/\/+$/, "");
+
+const isLoopbackHostname = (hostname: string) =>
+  ["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"].includes(hostname);
+
+const getUrlHostname = (url: string) => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
+  }
+};
+
+const inferBrowserApiUrl = () => {
+  if (typeof window === "undefined") return DEFAULT_LOCAL_API_URL;
+
+  const { hostname, protocol } = window.location;
+  const apiHost = isLoopbackHostname(hostname) ? "localhost" : hostname;
+
+  return `${protocol}//${apiHost}:${DEFAULT_API_PORT}`;
+};
+
+const resolveApiBaseUrl = () => {
+  const configuredUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+
+  if (typeof window !== "undefined") {
+    const currentHost = window.location.hostname;
+    const configuredHost = configuredUrl ? getUrlHostname(configuredUrl) : "";
+    const shouldInferHostedApiUrl =
+      !configuredUrl ||
+      (!isLoopbackHostname(currentHost) && isLoopbackHostname(configuredHost));
+
+    if (shouldInferHostedApiUrl) {
+      return inferBrowserApiUrl();
+    }
+  }
+
+  return stripTrailingSlash(configuredUrl || DEFAULT_LOCAL_API_URL);
+};
+
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001",
+  BASE_URL: resolveApiBaseUrl(),
 
   ENDPOINTS: {
     AUTH: {
