@@ -1,0 +1,29 @@
+services:
+  backend:
+    image: ghcr.io/supunss/flux-backend:latest
+    container_name: flux-backend
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+    volumes:
+      - backend_uploads:/app/uploads
+
+  frontend:
+    image: ghcr.io/supunss/flux-frontend:latest
+    container_name: flux-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+    depends_on:
+      - backend
+
+volumes:
+  backend_uploads:

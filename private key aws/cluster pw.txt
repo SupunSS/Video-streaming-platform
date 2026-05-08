@@ -1,0 +1,3 @@
+Flux_user FluxUser2026StrongPass
+
+mongodb+srv://Flux_user:FluxUser2026StrongPass@cluster0.hnpkf8v.mongodb.net/?appName=Cluster0
