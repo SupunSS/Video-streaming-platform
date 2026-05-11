@@ -4,6 +4,7 @@ env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE: ghcr.io/supunss/flux-backend
   FRONTEND_IMAGE: ghcr.io/supunss/flux-frontend
+  EC2_HOST: 13.51.210.244
   PUBLIC_API_URL: http://13.51.210.244:3001
 
 on:
@@ -135,7 +136,7 @@ jobs:
       - name: Deploy latest images to EC2
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.EC2_HOST }}
+          host: ${{ env.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
