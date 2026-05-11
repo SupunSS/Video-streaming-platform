@@ -5,13 +5,7 @@ import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { HeroSection } from '@/components/home/HeroSection';
 import { VideoRowCarousel } from '@/components/home/VideoRowCarousel';
-import {
-  FiTrendingUp,
-  FiClock,
-  FiThumbsUp,
-  FiZap,
-  FiPlayCircle,
-} from 'react-icons/fi';
+import { FiPlayCircle } from 'react-icons/fi';
 import { Video } from '@/types/video.types';
 import { useVideos } from '@/features/video/useVideos';
 import { API_CONFIG } from '@/config/api.config';
@@ -155,11 +149,10 @@ export default function HomePage() {
         )}
 
         <section className="relative z-10 -mt-28 pb-24">
-          <div className="space-y-14 md:space-y-16 lg:space-y-18">
+          <div className="space-y-6 md:space-y-8 lg:space-y-10">
             <div className="px-1">
               <VideoRowCarousel
                 title="Trending Now"
-                icon={<FiTrendingUp className="h-4 w-4 text-sky-300" />}
                 videos={trending}
               />
             </div>
@@ -167,7 +160,6 @@ export default function HomePage() {
             <div className="px-1">
               <VideoRowCarousel
                 title="New Releases"
-                icon={<FiZap className="h-4 w-4 text-blue-300" />}
                 videos={newReleases}
               />
             </div>
@@ -175,7 +167,6 @@ export default function HomePage() {
             <div className="px-1">
               <VideoRowCarousel
                 title="Continue Watching"
-                icon={<FiClock className="h-4 w-4 text-cyan-300" />}
                 videos={continueWatching}
                 showProgress
               />
@@ -184,7 +175,6 @@ export default function HomePage() {
             <div className="px-1">
               <VideoRowCarousel
                 title="Recommended For You"
-                icon={<FiThumbsUp className="h-4 w-4 text-indigo-300" />}
                 videos={recommended}
               />
             </div>

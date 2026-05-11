@@ -4,6 +4,7 @@ env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE: ghcr.io/supunss/flux-backend
   FRONTEND_IMAGE: ghcr.io/supunss/flux-frontend
+  PUBLIC_API_URL: http://13.51.210.244:3001
 
 on:
   push:
@@ -48,6 +49,7 @@ jobs:
       - name: Build frontend
         run: npm run build --workspace=frontend
         env:
+          NEXT_PUBLIC_API_URL: ${{ env.PUBLIC_API_URL }}
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ci-placeholder-client-id
 
   backend:
@@ -116,7 +118,7 @@ jobs:
           context: ./frontend
           push: true
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_API_URL=${{ env.PUBLIC_API_URL }}
             NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'ci-placeholder-client-id' }}
           tags: |
             ${{ env.FRONTEND_IMAGE }}:latest
@@ -138,8 +140,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/flux
+            export NEXT_PUBLIC_API_URL="${{ env.PUBLIC_API_URL }}"
             docker compose -f docker-compose.prod.yml --env-file .env pull
             docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate
             docker image prune -f
             docker ps
-

@@ -9,7 +9,6 @@ import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 interface VideoRowCarouselProps {
   title: string;
-  icon?: React.ReactNode;
   videos: Video[];
   showProgress?: boolean;
 }
@@ -22,7 +21,6 @@ const Z_INDEXES = [30,  20,   12,   6,    1];
 
 export const VideoRowCarousel: React.FC<VideoRowCarouselProps> = ({
   title,
-  icon,
   videos,
   showProgress = false,
 }) => {
@@ -58,10 +56,7 @@ export const VideoRowCarousel: React.FC<VideoRowCarouselProps> = ({
     <div className="relative group/row py-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4 px-6">
-        <div className="flex items-center gap-2">
-          {icon}
-          <h2 className="section-title text-xl">{title}</h2>
-        </div>
+        <h2 className="text-xl font-bold text-white">{title}</h2>
         <div className="flex items-center gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity duration-300">
           <button
             onClick={handlePrevious}
