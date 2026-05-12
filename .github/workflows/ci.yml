@@ -17,6 +17,10 @@ on:
       - main
       - supun
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   frontend:
     name: Frontend Build
@@ -24,10 +28,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
@@ -47,11 +51,14 @@ jobs:
       - name: Run frontend lint
         run: npm run lint --workspace=frontend
 
+      - name: Type-check frontend
+        run: npm exec --workspace=frontend -- tsc --noEmit
+
       - name: Build frontend
         run: npm run build --workspace=frontend
         env:
           NEXT_PUBLIC_API_URL: ${{ env.PUBLIC_API_URL }}
-          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ci-placeholder-client-id
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'ci-placeholder-client-id' }}
 
   backend:
     name: Backend Build and Test
@@ -59,10 +66,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
@@ -84,7 +91,7 @@ jobs:
       - frontend
       - backend
 
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     permissions:
       contents: read
@@ -92,7 +99,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -109,6 +116,8 @@ jobs:
         with:
           context: ./backend
           push: true
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
           tags: |
             ${{ env.BACKEND_IMAGE }}:latest
             ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
@@ -121,6 +130,8 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=${{ env.PUBLIC_API_URL }}
             NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'ci-placeholder-client-id' }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
           tags: |
             ${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
@@ -130,7 +141,7 @@ jobs:
     needs:
       - docker
 
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Deploy latest images to EC2
@@ -142,6 +153,7 @@ jobs:
           script: |
             cd ~/flux
             export NEXT_PUBLIC_API_URL="${{ env.PUBLIC_API_URL }}"
+            docker compose -f docker-compose.prod.yml --env-file .env config --quiet
             docker compose -f docker-compose.prod.yml --env-file .env pull
             docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate
             docker image prune -f
