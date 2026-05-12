@@ -5,7 +5,7 @@ env:
   BACKEND_IMAGE: ghcr.io/supunss/flux-backend
   FRONTEND_IMAGE: ghcr.io/supunss/flux-frontend
   EC2_HOST: 13.51.210.244
-  PUBLIC_API_URL: http://13.51.210.244:3001
+  PUBLIC_API_URL: http://13.51.210.244/api
 
 on:
   push:
