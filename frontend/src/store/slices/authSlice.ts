@@ -6,6 +6,9 @@ interface User {
   username: string;
   avatar?: string;
   accountType?: string;
+  isAdmin?: boolean;
+  isBanned?: boolean;
+  emailVerified?: boolean;
 }
 
 interface AuthState {

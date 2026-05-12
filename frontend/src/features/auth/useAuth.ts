@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setCredentials, logout } from "@/store/slices/authSlice";
 import {
   authService,
+  AuthResponse,
   LoginPayload,
   RegisterPayload,
 } from "@/services/auth.service";
@@ -19,6 +20,12 @@ import {
 type LoginOptions = {
   remember?: boolean;
 };
+
+const isAuthResponse = (value: unknown): value is AuthResponse =>
+  typeof value === "object" &&
+  value !== null &&
+  "access_token" in value &&
+  "user" in value;
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
@@ -62,9 +69,20 @@ export const useAuth = () => {
   const registerUser = useCallback(async (payload: RegisterPayload) => {
     try {
       const data = await authService.register(payload);
-      dispatch(setCredentials({ user: data.user, token: data.access_token }));
-      notify.success("Account created!");
-      router.push("/");
+
+      if (isAuthResponse(data)) {
+        dispatch(setCredentials({ user: data.user, token: data.access_token }));
+        notify.success("Account created!");
+        router.push("/");
+        return;
+      }
+
+      notify.success("Account created. Check your email to verify it.");
+      const params = new URLSearchParams({ email: data.email });
+      if (data.verificationUrl) {
+        params.set("devVerificationUrl", data.verificationUrl);
+      }
+      router.push(`/verify-email?${params.toString()}`);
     } catch (err: unknown) {
       const message = getErrorMessage(err, "Registration failed");
       notify.error(message);

@@ -53,9 +53,9 @@ export const VideoRowCarousel: React.FC<VideoRowCarouselProps> = ({
   };
 
   return (
-    <div className="relative group/row py-4">
+    <div className="relative group/row py-2">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 px-6">
+      <div className="flex items-center justify-between mb-2 px-6">
         <h2 className="text-xl font-bold text-white">{title}</h2>
         <div className="flex items-center gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity duration-300">
           <button
@@ -73,8 +73,8 @@ export const VideoRowCarousel: React.FC<VideoRowCarouselProps> = ({
         </div>
       </div>
 
-      {/* Carousel — taller to fit the poster aspect ratio */}
-      <div className="relative h-[460px] overflow-hidden">
+      {/* Carousel sized to fit the poster cards without extra vertical air */}
+      <div className="relative h-[360px] overflow-hidden">
         <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-dark-500 to-transparent z-40 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-dark-500 to-transparent z-40 pointer-events-none" />
 

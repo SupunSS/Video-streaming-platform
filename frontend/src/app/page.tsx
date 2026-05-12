@@ -90,7 +90,7 @@ export default function HomePage() {
     [rawVideos],
   );
 
-  const featuredVideo    = videos[0] ?? null;
+  const featuredVideo    = videos.find((video) => video.isFeatured) ?? videos[0] ?? null;
   const trending         = videos.slice(0, 10);
   const newReleases      = videos.slice(0, 8);
   const continueWatching = videos.slice(0, 10);
@@ -144,12 +144,11 @@ export default function HomePage() {
         {featuredVideo && (
           <div className="relative">
             <HeroSection video={featuredVideo} />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-[#060814] via-[#060814]/85 to-transparent" />
           </div>
         )}
 
-        <section className="relative z-10 -mt-28 pb-24">
-          <div className="space-y-6 md:space-y-8 lg:space-y-10">
+        <section className="relative z-10 bg-dark-500 pt-6 pb-20">
+          <div className="space-y-1 md:space-y-2">
             <div className="px-1">
               <VideoRowCarousel
                 title="Trending Now"

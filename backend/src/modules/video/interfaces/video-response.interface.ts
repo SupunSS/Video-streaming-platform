@@ -14,6 +14,9 @@ export interface VideoResponse {
   releaseYear?: number;
   isFeatured: boolean;
   isPublished: boolean;
+  isBanned: boolean;
+  banReason?: string;
+  bannedAt?: string | null;
   views: number;
   ratingsCount: number;
   averageRating: number;

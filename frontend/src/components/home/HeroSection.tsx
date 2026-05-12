@@ -19,6 +19,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
   const { scrollY } = useScroll();
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
   const scale = useTransform(scrollY, [0, 300], [1, 0.9]);
+  const backgroundY = useTransform(scrollY, [0, 500], [0, 150]);
   const ratingLabel =
     video.rating !== null && video.rating !== undefined && video.rating !== ''
       ? video.rating
@@ -43,7 +44,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
     <motion.div
       ref={containerRef}
       style={{ opacity, scale }}
-      className="relative w-full h-[85vh] min-h-[600px] overflow-hidden"
+      className="relative w-full h-[85vh] min-h-[600px] overflow-hidden bg-dark-500"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -54,14 +55,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
           backgroundImage: `url(${video.thumbnail})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center 30%', // Keep subject away from top edge
-          y: useTransform(scrollY, [0, 500], [0, 150]),
+          y: backgroundY,
         }}
       >
         {/* 🔼 Stronger top gradient to prevent text overlapping navbar */}
         <div className="absolute inset-0 bg-gradient-to-b from-dark-500/90 via-dark-500/30 to-transparent" />
         
         {/* 🔽 Bottom gradient for smooth blend into content rows */}
-        <div className="absolute inset-0 bg-gradient-to-t from-dark-500 via-dark-500/80 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-dark-500 via-dark-500/90 to-transparent" />
         
         {/* Subtle grid overlay */}
         <div
@@ -82,7 +83,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
             transition={{ delay: 0.2, duration: 0.6 }}
             className="text-5xl md:text-7xl lg:text-8xl font-bold"
           >
-            <span className="bg-gradient-to-r from-neon-cyan via-white to-neon-magenta bg-clip-text text-transparent drop-shadow-lg">
+            <span
+              className="text-white"
+              style={{
+                textShadow:
+                  '0 4px 18px rgba(0,0,0,0.95), 0 0 34px rgba(0,0,0,0.75)',
+              }}
+            >
               {video.title}
             </span>
           </motion.h1>
@@ -91,7 +98,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.5 }}
-            className="flex items-center justify-center gap-4 text-white/80 text-sm md:text-base"
+            className="flex items-center justify-center gap-4 text-white text-sm md:text-base drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]"
           >
             <span className="flex items-center gap-1"><span className="text-neon-cyan">★</span> {ratingLabel}</span>
             <span>•</span>
@@ -108,7 +115,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
-            className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto line-clamp-3"
+            className="text-lg md:text-xl text-white/85 max-w-2xl mx-auto line-clamp-3 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
           >
             {video.description || "Twisted tales run wild in this mind-bending anthology series that reveals humanity's worst traits, greatest innovations and more."}
           </motion.p>
@@ -153,7 +160,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ video }) => {
       </div>
 
       {/* Extra bottom fade layer for seamless blend */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-dark-500 to-transparent pointer-events-none" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-dark-500 to-transparent" />
 
       {particles.length > 0 && isHovered && (
         <div className="absolute inset-0 pointer-events-none">

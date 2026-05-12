@@ -55,6 +55,15 @@ export class Video {
   @Prop({ default: false })
   isPublished: boolean;
 
+  @Prop({ default: false })
+  isBanned: boolean;
+
+  @Prop({ trim: true, default: '' })
+  banReason: string;
+
+  @Prop()
+  bannedAt?: Date;
+
   @Prop({ default: 0 })
   views: number;
 

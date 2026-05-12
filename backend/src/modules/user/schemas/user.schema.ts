@@ -35,6 +35,27 @@ export class User {
 
   @Prop()
   studioAgreementVersion?: string;
+
+  @Prop({ default: false })
+  isBanned: boolean;
+
+  @Prop({ trim: true, default: '' })
+  banReason: string;
+
+  @Prop()
+  bannedAt?: Date;
+
+  @Prop({ default: false })
+  emailVerified: boolean;
+
+  @Prop()
+  emailVerifiedAt?: Date;
+
+  @Prop({ select: false })
+  emailVerificationTokenHash?: string;
+
+  @Prop({ select: false })
+  emailVerificationExpiresAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

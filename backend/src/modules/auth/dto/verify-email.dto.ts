@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 
-export class UpdateAvatarDto {
+export class VerifyEmailDto {
   @IsString()
   @IsNotEmpty()
-  avatar!: string;
+  token!: string;
 }

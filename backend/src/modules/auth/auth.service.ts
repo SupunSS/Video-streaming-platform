@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -8,13 +9,22 @@ import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { createHash, randomBytes } from 'node:crypto';
 import { OAuth2Client } from 'google-auth-library';
 
 import { User, UserDocument } from '../user/schemas/user.schema';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { MailService } from './mail.service';
 
 const STUDIO_AGREEMENT_VERSION = '2026-04-30';
+const EMAIL_VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+
+const parseAdminEmails = (value?: string) =>
+  (value ?? '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
 
 @Injectable()
 export class AuthService {
@@ -24,6 +34,7 @@ export class AuthService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private mailService: MailService,
   ) {
     this.googleClient = new OAuth2Client(
       this.configService.get<string>('GOOGLE_CLIENT_ID'),
@@ -31,7 +42,8 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
-    const { username, email, password, accountType } = registerDto;
+    const { username, password, accountType } = registerDto;
+    const email = registerDto.email.trim().toLowerCase();
     const isStudioAccount = accountType === 'studio';
 
     if (isStudioAccount && !registerDto.studioAgreementAccepted) {
@@ -40,7 +52,14 @@ export class AuthService {
       );
     }
 
+    const existing = await this.userModel.findOne({ email });
+
+    if (existing) {
+      throw new ConflictException('Email already in use');
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
+    const verification = this.createEmailVerificationToken();
 
     const user = await this.userModel.create({
       username,
@@ -53,9 +72,19 @@ export class AuthService {
         ? STUDIO_AGREEMENT_VERSION
         : undefined,
       authProvider: 'local',
+      emailVerified: false,
+      emailVerificationTokenHash: verification.hash,
+      emailVerificationExpiresAt: verification.expiresAt,
     });
 
-    return this.buildAuthResponse(user);
+    const delivery = await this.sendVerificationEmail(user, verification.token);
+
+    return {
+      requiresEmailVerification: true,
+      email: user.email,
+      message: 'Account created. Please verify your email before signing in.',
+      verificationUrl: delivery.sent ? undefined : delivery.verificationUrl,
+    };
   }
 
   async login(dto: LoginDto) {
@@ -63,6 +92,10 @@ export class AuthService {
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.isBanned) {
+      throw new UnauthorizedException('This account has been banned');
     }
 
     if (!user.password) {
@@ -75,6 +108,12 @@ export class AuthService {
 
     if (!match) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.emailVerified === false) {
+      throw new UnauthorizedException(
+        'Please verify your email before signing in.',
+      );
     }
 
     return this.buildAuthResponse(user);
@@ -110,8 +149,14 @@ export class AuthService {
         googleId: sub,
         authProvider: 'google',
         accountType: 'user',
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
       });
     } else {
+      if (user.isBanned) {
+        throw new UnauthorizedException('This account has been banned');
+      }
+
       if (!user.googleId) {
         user.googleId = sub;
       }
@@ -121,6 +166,8 @@ export class AuthService {
       }
 
       user.authProvider = user.authProvider || 'google';
+      user.emailVerified = true;
+      user.emailVerifiedAt = user.emailVerifiedAt ?? new Date();
 
       await user.save();
     }
@@ -128,13 +175,84 @@ export class AuthService {
     return this.buildAuthResponse(user);
   }
 
+  async verifyEmail(token: string) {
+    const tokenHash = this.hashToken(token);
+
+    const user = await this.userModel
+      .findOne({
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationExpiresAt: { $gt: new Date() },
+      })
+      .select('+emailVerificationTokenHash +emailVerificationExpiresAt')
+      .exec();
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired verification link');
+    }
+
+    if (user.isBanned) {
+      throw new UnauthorizedException('This account has been banned');
+    }
+
+    user.emailVerified = true;
+    user.emailVerifiedAt = new Date();
+    user.emailVerificationTokenHash = undefined;
+    user.emailVerificationExpiresAt = undefined;
+    await user.save();
+
+    return this.buildAuthResponse(user);
+  }
+
+  async resendVerification(emailInput: string) {
+    const email = emailInput.trim().toLowerCase();
+    const user = await this.userModel
+      .findOne({ email })
+      .select('+emailVerificationTokenHash +emailVerificationExpiresAt')
+      .exec();
+
+    if (!user) {
+      return {
+        message:
+          'If an unverified account exists for this email, a verification link has been sent.',
+      };
+    }
+
+    if (user.isBanned) {
+      throw new UnauthorizedException('This account has been banned');
+    }
+
+    if (user.emailVerified !== false) {
+      return {
+        message: 'This email is already verified.',
+        alreadyVerified: true,
+      };
+    }
+
+    const verification = this.createEmailVerificationToken();
+    user.emailVerificationTokenHash = verification.hash;
+    user.emailVerificationExpiresAt = verification.expiresAt;
+    await user.save();
+
+    const delivery = await this.sendVerificationEmail(user, verification.token);
+
+    return {
+      requiresEmailVerification: true,
+      email: user.email,
+      message: 'Verification email sent.',
+      verificationUrl: delivery.sent ? undefined : delivery.verificationUrl,
+    };
+  }
+
   private buildAuthResponse(user: UserDocument) {
+    const isAdmin = this.isAdminEmail(user.email);
+
     return {
       access_token: this.jwtService.sign({
         sub: user._id.toString(),
         email: user.email,
         username: user.username,
         accountType: user.accountType,
+        isAdmin,
       }),
       user: {
         id: user._id.toString(),
@@ -142,7 +260,54 @@ export class AuthService {
         username: user.username,
         avatar: user.avatar,
         accountType: user.accountType,
+        isAdmin,
+        emailVerified: user.emailVerified ?? true,
+        isBanned: user.isBanned ?? false,
       },
     };
+  }
+
+  private createEmailVerificationToken() {
+    const token = randomBytes(32).toString('hex');
+
+    return {
+      token,
+      hash: this.hashToken(token),
+      expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_MS),
+    };
+  }
+
+  private hashToken(token: string) {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async sendVerificationEmail(user: UserDocument, token: string) {
+    const verificationUrl = this.buildVerificationUrl(token);
+    const delivery = await this.mailService.sendVerificationEmail({
+      to: user.email,
+      username: user.username,
+      verificationUrl,
+    });
+
+    return {
+      ...delivery,
+      verificationUrl,
+    };
+  }
+
+  private buildVerificationUrl(token: string) {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
+
+    return `${frontendUrl.replace(/\/+$/, '')}/verify-email?token=${token}`;
+  }
+
+  private isAdminEmail(email?: string) {
+    const adminEmails = [
+      ...parseAdminEmails(this.configService.get<string>('ADMIN_EMAILS')),
+      ...parseAdminEmails(this.configService.get<string>('ADMIN_EMAIL')),
+    ];
+
+    return !!email && adminEmails.includes(email.toLowerCase());
   }
 }

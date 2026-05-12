@@ -49,6 +49,8 @@ export const API_CONFIG = {
       LOGIN: "/auth/login",
       REGISTER: "/auth/register",
       GOOGLE: "/auth/google",
+      VERIFY_EMAIL: "/auth/verify-email",
+      RESEND_VERIFICATION: "/auth/resend-verification",
     },
 
     VIDEOS: {
@@ -78,6 +80,17 @@ export const API_CONFIG = {
       VIDEO: "/upload/video",
       THUMBNAIL: "/upload/thumbnail",
       POSTER: "/upload/poster",
+    },
+
+    ADMIN: {
+      ME: "/admin/me",
+      OVERVIEW: "/admin/overview",
+      USERS: "/admin/users",
+      BAN_USER: (id: string) => `/admin/users/${id}/ban`,
+      UNBAN_USER: (id: string) => `/admin/users/${id}/unban`,
+      VIDEOS: "/admin/videos",
+      BAN_VIDEO: (id: string) => `/admin/videos/${id}/ban`,
+      UNBAN_VIDEO: (id: string) => `/admin/videos/${id}/unban`,
     },
   },
 };

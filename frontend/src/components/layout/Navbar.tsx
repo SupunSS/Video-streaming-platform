@@ -11,6 +11,7 @@ import {
   FiLogOut,
   FiSearch,
   FiSettings,
+  FiShield,
   FiSliders,
   FiUpload,
   FiUser,
@@ -87,6 +88,7 @@ export const Navbar = () => {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
   const isStudio = user?.accountType === 'studio';
+  const isAdmin = user?.isAdmin === true;
 
   const mounted = useSyncExternalStore(
     subscribeToClient,
@@ -119,6 +121,8 @@ export const Navbar = () => {
     pathname.startsWith('/tv-shows/') ||
     pathname === '/dashboard' ||
     pathname.startsWith('/dashboard/') ||
+    pathname === '/admin' ||
+    pathname.startsWith('/admin/') ||
     pathname === '/library' ||
     pathname.startsWith('/library/') ||
     pathname === '/search' ||
@@ -520,6 +524,17 @@ export const Navbar = () => {
                             >
                               <FiGrid className="h-4 w-4" />
                               Dashboard
+                            </Link>
+                          )}
+
+                          {isAdmin && (
+                            <Link
+                              href="/admin"
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-sky-200 transition hover:bg-sky-400/10 hover:text-white"
+                            >
+                              <FiShield className="h-4 w-4" />
+                              Admin
                             </Link>
                           )}
 

@@ -454,6 +454,15 @@ export default function LoginPage() {
               Sign up
             </Link>
           </p>
+          <p className="mt-3 text-center text-sm text-white/45">
+            Need a new verification email?{' '}
+            <Link
+              href="/verify-email"
+              className="font-semibold text-neon-cyan transition-colors hover:text-neon-magenta"
+            >
+              Resend it
+            </Link>
+          </p>
         </div>
       </motion.div>
     </div>
