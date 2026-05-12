@@ -202,8 +202,48 @@ export default function AdminPage() {
   );
 
   useEffect(() => {
-    void loadDashboard();
-  }, [loadDashboard]);
+    let cancelled = false;
+
+    const loadInitialDashboard = async () => {
+      if (typeof window !== 'undefined' && !localStorage.getItem('access_token')) {
+        router.replace('/login');
+        return;
+      }
+
+      try {
+        await adminService.getMe();
+        const dashboard = await adminService.getDashboard();
+        if (cancelled) return;
+        setData(dashboard);
+        setError('');
+        setAccessDenied(false);
+      } catch (err: unknown) {
+        if (cancelled) return;
+
+        if (axios.isAxiosError(err) && err.response?.status === 403) {
+          setAccessDenied(true);
+          return;
+        }
+
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          router.replace('/login');
+          return;
+        }
+
+        setError(getErrorMessage(err, 'Failed to load admin dashboard'));
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadInitialDashboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const replaceVideo = (updatedVideo: AdminVideo) => {
     setData((current) =>
