@@ -29,6 +29,9 @@ type LeanVideo = {
   duration?: number;
   isFeatured?: boolean;
   isPublished?: boolean;
+  isBanned?: boolean;
+  banReason?: string;
+  bannedAt?: Date;
   views?: number;
   ratingsCount?: number;
   averageRating?: number;
@@ -44,7 +47,7 @@ type LeanVideo = {
 
 type SerializedVideo = Omit<
   LeanVideo,
-  '_id' | 'owner' | 'ratings' | 'createdAt' | 'updatedAt'
+  '_id' | 'owner' | 'ratings' | 'createdAt' | 'updatedAt' | 'bannedAt'
 > & {
   _id: string;
   owner: string;
@@ -61,6 +64,7 @@ type SerializedVideo = Omit<
   };
   createdAt: string;
   updatedAt: string;
+  bannedAt?: string | null;
   myRating?: number | null;
 };
 
@@ -100,6 +104,8 @@ export class VideoService {
       releaseYear: dto.releaseYear,
       duration: dto.duration ?? 0,
       isFeatured: dto.isFeatured ?? false,
+      isBanned: false,
+      banReason: '',
       seriesTitle: dto.type === 'tv_show' ? (dto.seriesTitle ?? '') : '',
       seasonNumber: dto.type === 'tv_show' ? dto.seasonNumber : undefined,
       episodeNumber: dto.type === 'tv_show' ? dto.episodeNumber : undefined,
@@ -121,7 +127,8 @@ export class VideoService {
 
   async getAll(): Promise<SerializedVideo[]> {
     const videos = await this.videoModel
-      .find({ isPublished: true })
+      .find({ isPublished: true, isBanned: { $ne: true } })
+      .select('-ratings')
       .sort({ createdAt: -1 })
       .populate<{ owner: PopulatedOwner }>('owner', ownerSelect)
       .lean<LeanVideo[]>()
@@ -133,6 +140,7 @@ export class VideoService {
   async getMyVideos(ownerId: string): Promise<SerializedVideo[]> {
     const videos = await this.videoModel
       .find({ owner: new Types.ObjectId(ownerId) })
+      .select('-ratings')
       .sort({ createdAt: -1 })
       .populate<{ owner: PopulatedOwner }>('owner', ownerSelect)
       .lean<LeanVideo[]>()
@@ -147,7 +155,11 @@ export class VideoService {
     }
 
     const video = await this.videoModel
-      .findById(id)
+      .findOne({
+        _id: id,
+        isPublished: true,
+        isBanned: { $ne: true },
+      })
       .populate<{ owner: PopulatedOwner }>('owner', ownerSelect)
       .lean<LeanVideo | null>()
       .exec();
@@ -165,7 +177,15 @@ export class VideoService {
     }
 
     const video = await this.videoModel
-      .findByIdAndUpdate(id, { $inc: { views: 1 } }, { returnDocument: 'after' })
+      .findOneAndUpdate(
+        {
+          _id: id,
+          isPublished: true,
+          isBanned: { $ne: true },
+        },
+        { $inc: { views: 1 } },
+        { returnDocument: 'after' },
+      )
       .populate<{ owner: PopulatedOwner }>('owner', ownerSelect)
       .lean<LeanVideo | null>()
       .exec();
@@ -186,7 +206,11 @@ export class VideoService {
     }
 
     const video = await this.videoModel
-      .findById(id)
+      .findOne({
+        _id: id,
+        isPublished: true,
+        isBanned: { $ne: true },
+      })
       .select('ratings')
       .lean<Pick<LeanVideo, 'ratings'> | null>()
       .exec();
@@ -207,7 +231,13 @@ export class VideoService {
       throw new NotFoundException('Video not found');
     }
 
-    const video = await this.videoModel.findById(id).exec();
+    const video = await this.videoModel
+      .findOne({
+        _id: id,
+        isPublished: true,
+        isBanned: { $ne: true },
+      })
+      .exec();
 
     if (!video) {
       throw new NotFoundException('Video not found');
@@ -293,6 +323,9 @@ export class VideoService {
       ageRating: video.ageRating ?? '',
       isFeatured: video.isFeatured ?? false,
       isPublished: video.isPublished ?? true,
+      isBanned: video.isBanned ?? false,
+      banReason: video.banReason ?? '',
+      bannedAt: video.bannedAt?.toISOString() ?? null,
       views: video.views ?? 0,
       duration: video.duration ?? 0,
       ratingsCount: video.ratingsCount ?? 0,

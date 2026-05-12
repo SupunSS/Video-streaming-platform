@@ -23,6 +23,9 @@ export interface Video {
   ageRating?: string;
   releaseYear?: number;
   isFeatured?: boolean;
+  isBanned?: boolean;
+  banReason?: string;
+  bannedAt?: string | null;
 
   seriesTitle?: string;
   seasonNumber?: number;

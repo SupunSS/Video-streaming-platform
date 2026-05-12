@@ -23,7 +23,7 @@ const isTvShow = (dto: CreateVideoTypeTarget): boolean =>
 export class CreateVideoDto {
   @IsString()
   @IsNotEmpty()
-  title: string;
+  title!: string;
 
   @IsOptional()
   @IsString()
@@ -48,7 +48,7 @@ export class CreateVideoDto {
   tags?: string[];
 
   @IsEnum(['movie', 'tv_show'])
-  type: 'movie' | 'tv_show';
+  type!: 'movie' | 'tv_show';
 
   @IsOptional()
   @IsArray()

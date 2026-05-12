@@ -5,13 +5,7 @@ import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { HeroSection } from '@/components/home/HeroSection';
 import { VideoRowCarousel } from '@/components/home/VideoRowCarousel';
-import {
-  FiTrendingUp,
-  FiClock,
-  FiThumbsUp,
-  FiZap,
-  FiPlayCircle,
-} from 'react-icons/fi';
+import { FiPlayCircle } from 'react-icons/fi';
 import { Video } from '@/types/video.types';
 import { useVideos } from '@/features/video/useVideos';
 import { API_CONFIG } from '@/config/api.config';
@@ -96,7 +90,7 @@ export default function HomePage() {
     [rawVideos],
   );
 
-  const featuredVideo    = videos[0] ?? null;
+  const featuredVideo    = videos.find((video) => video.isFeatured) ?? videos[0] ?? null;
   const trending         = videos.slice(0, 10);
   const newReleases      = videos.slice(0, 8);
   const continueWatching = videos.slice(0, 10);
@@ -150,16 +144,14 @@ export default function HomePage() {
         {featuredVideo && (
           <div className="relative">
             <HeroSection video={featuredVideo} />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-[#060814] via-[#060814]/85 to-transparent" />
           </div>
         )}
 
-        <section className="relative z-10 -mt-28 pb-24">
-          <div className="space-y-14 md:space-y-16 lg:space-y-18">
+        <section className="relative z-10 bg-dark-500 pt-6 pb-20">
+          <div className="space-y-1 md:space-y-2">
             <div className="px-1">
               <VideoRowCarousel
                 title="Trending Now"
-                icon={<FiTrendingUp className="h-4 w-4 text-sky-300" />}
                 videos={trending}
               />
             </div>
@@ -167,7 +159,6 @@ export default function HomePage() {
             <div className="px-1">
               <VideoRowCarousel
                 title="New Releases"
-                icon={<FiZap className="h-4 w-4 text-blue-300" />}
                 videos={newReleases}
               />
             </div>
@@ -175,7 +166,6 @@ export default function HomePage() {
             <div className="px-1">
               <VideoRowCarousel
                 title="Continue Watching"
-                icon={<FiClock className="h-4 w-4 text-cyan-300" />}
                 videos={continueWatching}
                 showProgress
               />
@@ -184,7 +174,6 @@ export default function HomePage() {
             <div className="px-1">
               <VideoRowCarousel
                 title="Recommended For You"
-                icon={<FiThumbsUp className="h-4 w-4 text-indigo-300" />}
                 videos={recommended}
               />
             </div>

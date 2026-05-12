@@ -16,11 +16,11 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3001"
+    env_file:
+      - ./backend/.env
     environment:
       PORT: 3001
       MONGODB_URI: mongodb://mongo:27017/streamvault
-      JWT_SECRET: your_super_secret_key_here
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-1054289478784-f1urdo8r4ihbf2k07eo5khvlc6v8trp4.apps.googleusercontent.com}
     volumes:
       - backend_uploads:/app/uploads
     depends_on:
@@ -31,14 +31,14 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:3001
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-1054289478784-f1urdo8r4ihbf2k07eo5khvlc6v8trp4.apps.googleusercontent.com}
     container_name: streamvault-frontend
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-1054289478784-f1urdo8r4ihbf2k07eo5khvlc6v8trp4.apps.googleusercontent.com}
     depends_on:
       - backend

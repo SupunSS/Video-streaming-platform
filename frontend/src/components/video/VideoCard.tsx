@@ -16,7 +16,7 @@ interface VideoCardProps {
   enableHoverDetails?: boolean;
 }
 
-export const VideoCard: React.FC<VideoCardProps> = ({
+const VideoCardComponent: React.FC<VideoCardProps> = ({
   video,
   showProgress = false,
   isActive = false,
@@ -225,3 +225,5 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     </div>
   );
 };
+
+export const VideoCard = React.memo(VideoCardComponent);

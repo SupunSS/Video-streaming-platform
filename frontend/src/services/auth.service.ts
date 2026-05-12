@@ -7,11 +7,22 @@ export interface AuthUser {
   username: string;
   avatar: string;
   accountType?: "user" | "studio";
+  isAdmin?: boolean;
+  isBanned?: boolean;
+  emailVerified?: boolean;
 }
 
 export interface AuthResponse {
   access_token: string;
   user: AuthUser;
+}
+
+export interface EmailVerificationPendingResponse {
+  requiresEmailVerification: true;
+  email: string;
+  message: string;
+  verificationUrl?: string;
+  alreadyVerified?: boolean;
 }
 
 export interface RegisterPayload {
@@ -29,7 +40,9 @@ export interface LoginPayload {
 }
 
 export const authService = {
-  async register(payload: RegisterPayload): Promise<AuthResponse> {
+  async register(
+    payload: RegisterPayload,
+  ): Promise<AuthResponse | EmailVerificationPendingResponse> {
     const res = await axiosInstance.post(
       API_CONFIG.ENDPOINTS.AUTH.REGISTER,
       payload,
@@ -50,6 +63,23 @@ export const authService = {
       credential,
     });
 
+    return res.data;
+  },
+
+  async verifyEmail(token: string): Promise<AuthResponse> {
+    const res = await axiosInstance.post(API_CONFIG.ENDPOINTS.AUTH.VERIFY_EMAIL, {
+      token,
+    });
+    return res.data;
+  },
+
+  async resendVerification(
+    email: string,
+  ): Promise<EmailVerificationPendingResponse> {
+    const res = await axiosInstance.post(
+      API_CONFIG.ENDPOINTS.AUTH.RESEND_VERIFICATION,
+      { email },
+    );
     return res.data;
   },
 };

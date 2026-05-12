@@ -6,6 +6,11 @@ import { StreamVaultToastContainer } from '@/components/ui/CustomToast';
 export const metadata: Metadata = {
   title: 'Flux - Video Streaming Platform',
   description: 'Cloud-native video streaming platform',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/images/Flux_Logo.png',
+  },
 };
 
 export default function RootLayout({

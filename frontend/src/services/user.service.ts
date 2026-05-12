@@ -7,6 +7,12 @@ export interface CurrentUser {
   username: string;
   avatar: string;
   accountType?: string;
+  isAdmin?: boolean;
+  isBanned?: boolean;
+  banReason?: string;
+  bannedAt?: string | null;
+  emailVerified?: boolean;
+  emailVerifiedAt?: string | null;
 }
 
 export interface UpdateProfilePayload {

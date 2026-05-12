@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
         port: "3001",
         pathname: "/uploads/**",
       },
+      {
+        protocol: "http",
+        hostname: "13.51.210.244",
+        port: "3001",
+        pathname: "/uploads/**",
+      },
     ],
   },
 };

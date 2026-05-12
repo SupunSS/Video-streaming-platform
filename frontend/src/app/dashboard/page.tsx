@@ -181,7 +181,7 @@ function HeroBanner({ video }: { video: Video }) {
       : 'No ratings yet';
 
   return (
-    <div className="relative w-full overflow-hidden" style={{ height: '420px' }}>
+    <div className="relative mt-20 w-full overflow-hidden" style={{ height: '420px' }}>
       {/* Background image */}
       {video.thumbnail && (
         <Image
@@ -191,7 +191,7 @@ function HeroBanner({ video }: { video: Video }) {
           sizes="100vw"
           priority
           unoptimized
-          className="object-cover"
+          className="object-cover object-[center_42%]"
         />
       )}
 
@@ -514,12 +514,7 @@ export default function DashboardPage() {
 
             <SectionRow
               title="Recent Uploads"
-              accentColor="text-sky-400"
-              icon={
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              }
+              accentColor="text-white/400"
               videos={recentVideos}
               onDelete={handleDelete}
             />
