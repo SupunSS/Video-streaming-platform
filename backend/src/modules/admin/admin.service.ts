@@ -167,6 +167,7 @@ export class AdminService {
   async listVideos() {
     const videos = await this.videoModel
       .find()
+      .select('-ratings')
       .sort({ createdAt: -1 })
       .populate<{ owner: PopulatedOwner }>('owner', ownerSelect)
       .lean<AdminVideo[]>()

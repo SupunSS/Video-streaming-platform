@@ -11,67 +11,67 @@ export type VideoRating = {
 @Schema({ timestamps: true })
 export class Video {
   @Prop({ required: true, trim: true })
-  title: string;
+  title!: string;
 
   @Prop({ trim: true, default: '' })
-  description: string;
+  description!: string;
 
   @Prop({ required: true })
-  videoUrl: string;
+  videoUrl!: string;
 
   @Prop({ required: true })
-  thumbnailUrl: string;
+  thumbnailUrl!: string;
 
   @Prop({ trim: true, default: '' })
-  posterUrl: string;
+  posterUrl!: string;
 
   @Prop({ type: [String], default: [] })
-  tags: string[];
+  tags!: string[];
 
   @Prop({ required: true, enum: ['movie', 'tv_show'], default: 'movie' })
-  type: 'movie' | 'tv_show';
+  type!: 'movie' | 'tv_show';
 
   @Prop({ type: [String], default: [] })
-  genres: string[];
+  genres!: string[];
 
   @Prop({ type: [String], default: [] })
-  categories: string[];
+  categories!: string[];
 
   @Prop({ trim: true, default: '' })
-  language: string;
+  language!: string;
 
   @Prop({ trim: true, default: '' })
-  ageRating: string;
+  ageRating!: string;
 
   @Prop({ min: 1900, max: 3000, required: false })
   releaseYear?: number;
 
   @Prop({ default: 0, min: 0 })
-  duration: number;
+  duration!: number;
 
   @Prop({ default: false })
-  isFeatured: boolean;
+  isFeatured!: boolean;
 
   @Prop({ default: false })
-  isPublished: boolean;
+  isPublished!: boolean;
 
   @Prop({ default: false })
-  isBanned: boolean;
+  isBanned!: boolean;
 
   @Prop({ trim: true, default: '' })
-  banReason: string;
+  banReason!: string;
 
   @Prop()
   bannedAt?: Date;
 
   @Prop({ default: 0 })
-  views: number;
+  views!: number;
 
   @Prop({ default: 0 })
-  ratingsCount: number;
+  ratingsCount!: number;
 
   @Prop({ default: 0 })
-  averageRating: number;
+  averageRating!: number;
 
   @Prop({
     type: [
@@ -83,7 +83,7 @@ export class Video {
     ],
     default: [],
   })
-  ratings: VideoRating[];
+  ratings!: VideoRating[];
 
   @Prop({ trim: true, default: '' })
   seriesTitle?: string;
@@ -98,7 +98,13 @@ export class Video {
   episodeTitle?: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  owner: Types.ObjectId;
+  owner!: Types.ObjectId;
 }
 
 export const VideoSchema = SchemaFactory.createForClass(Video);
+
+VideoSchema.index({ isPublished: 1, isBanned: 1, createdAt: -1 });
+VideoSchema.index({ owner: 1, createdAt: -1 });
+VideoSchema.index({ owner: 1, isBanned: 1, isPublished: 1 });
+VideoSchema.index({ isBanned: 1, createdAt: -1 });
+VideoSchema.index({ type: 1, seriesTitle: 1, seasonNumber: 1, episodeNumber: 1 });

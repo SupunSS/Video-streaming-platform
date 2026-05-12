@@ -6,29 +6,29 @@ export type UserDocument = User & Document;
 @Schema({ timestamps: true })
 export class User {
   @Prop({ required: true })
-  username: string;
+  username!: string;
 
-  @Prop({ required: true, unique: true })
-  email: string;
+  @Prop({ required: true, unique: true, trim: true, lowercase: true })
+  email!: string;
 
   // Optional because Google users do not have a password
   @Prop()
   password?: string;
 
   @Prop({ default: '' })
-  avatar: string;
+  avatar!: string;
 
   @Prop()
   googleId?: string;
 
   @Prop({ default: 'local', enum: ['local', 'google'] })
-  authProvider: string;
+  authProvider!: string;
 
   @Prop({ default: 'user', enum: ['user', 'studio'] })
-  accountType: string;
+  accountType!: string;
 
   @Prop({ default: false })
-  studioAgreementAccepted: boolean;
+  studioAgreementAccepted!: boolean;
 
   @Prop()
   studioAgreementAcceptedAt?: Date;
@@ -37,16 +37,16 @@ export class User {
   studioAgreementVersion?: string;
 
   @Prop({ default: false })
-  isBanned: boolean;
+  isBanned!: boolean;
 
   @Prop({ trim: true, default: '' })
-  banReason: string;
+  banReason!: string;
 
   @Prop()
   bannedAt?: Date;
 
   @Prop({ default: false })
-  emailVerified: boolean;
+  emailVerified!: boolean;
 
   @Prop()
   emailVerifiedAt?: Date;
@@ -59,3 +59,7 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.index({ accountType: 1, createdAt: -1 });
+UserSchema.index({ isBanned: 1, createdAt: -1 });
+UserSchema.index({ emailVerificationTokenHash: 1 }, { sparse: true });

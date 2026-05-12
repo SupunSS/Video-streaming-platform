@@ -6,10 +6,10 @@ export type FollowDocument = Follow & Document;
 @Schema({ timestamps: true })
 export class Follow {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  follower: Types.ObjectId;
+  follower!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  following: Types.ObjectId;
+  following!: Types.ObjectId;
 }
 
 export const FollowSchema = SchemaFactory.createForClass(Follow);

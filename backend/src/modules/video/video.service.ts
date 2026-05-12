@@ -128,6 +128,7 @@ export class VideoService {
   async getAll(): Promise<SerializedVideo[]> {
     const videos = await this.videoModel
       .find({ isPublished: true, isBanned: { $ne: true } })
+      .select('-ratings')
       .sort({ createdAt: -1 })
       .populate<{ owner: PopulatedOwner }>('owner', ownerSelect)
       .lean<LeanVideo[]>()
@@ -139,6 +140,7 @@ export class VideoService {
   async getMyVideos(ownerId: string): Promise<SerializedVideo[]> {
     const videos = await this.videoModel
       .find({ owner: new Types.ObjectId(ownerId) })
+      .select('-ratings')
       .sort({ createdAt: -1 })
       .populate<{ owner: PopulatedOwner }>('owner', ownerSelect)
       .lean<LeanVideo[]>()
