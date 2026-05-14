@@ -2,13 +2,9 @@
 
 A full-stack video streaming platform built with **Next.js**, **NestJS**, **TypeScript**, and **MongoDB** in a **monorepo** architecture.
 
-Flux is designed as a modern streaming-style web application inspired by platforms like Netflix, while focusing on a **creator-oriented workflow** where authenticated users can upload, manage, and stream their own video content.
+Flux is designed as a modern streaming-style web application inspired by platforms like Netflix, while focusing on a **studio/creator-oriented workflow** where studio accounts can upload, manage, and stream video content, while regular users can browse and watch content.
 
-This project is built to showcase both:
-
-- full-stack development
-- secure backend architecture
-- DevOps-ready project organization for future cloud deployment and scaling
+This project also demonstrates a practical **DevOps deployment workflow** using Docker, GitHub Actions, GitHub Container Registry, AWS EC2, Nginx reverse proxy, MongoDB Atlas, health checks, automated deployment, and backup automation.
 
 ---
 
@@ -16,18 +12,17 @@ This project is built to showcase both:
 
 - [Overview](#overview)
 - [Features](#features)
+- [DevOps Features](#devops-features)
 - [Tech Stack](#tech-stack)
 - [Monorepo Structure](#monorepo-structure)
+- [Deployment Architecture](#deployment-architecture)
 - [Quick Start](#quick-start)
-- [Full Local Setup Guide](#full-local-setup-guide)
-- [How to Run the Project](#how-to-run-the-project)
-- [Project Map](#project-map)
-- [Backend Architecture](#backend-architecture)
-- [Frontend Architecture](#frontend-architecture)
+- [How to Run Locally](#how-to-run-locally)
+- [Docker Setup](#docker-setup)
 - [Environment Variables](#environment-variables)
 - [API Overview](#api-overview)
-- [Developer Workflow](#developer-workflow)
 - [Security and Ownership Model](#security-and-ownership-model)
+- [Backup Strategy](#backup-strategy)
 - [Completed Features](#completed-features)
 - [Roadmap](#roadmap)
 - [Troubleshooting](#troubleshooting)
@@ -41,20 +36,30 @@ This project is built to showcase both:
 Flux Video Streaming Platform is a production-style full-stack application that combines:
 
 - secure JWT authentication
-- protected video uploads
+- Google authentication
+- email verification using Gmail SMTP
+- protected studio upload workflows
 - ownership-based creator APIs
-- dynamic video playback
-- modular backend architecture
-- scalable monorepo organization
+- video playback and media serving
+- modular NestJS backend architecture
+- modern Next.js frontend
+- Dockerized deployment
+- CI/CD automation
+- cloud deployment on AWS EC2
 
-The goal is not just to build a nice-looking streaming UI, but to demonstrate realistic engineering practices such as:
+The goal is not only to build a good-looking streaming UI, but also to demonstrate realistic software engineering and DevOps practices such as:
 
 - protected APIs
+- role-based access control
 - backend-driven ownership validation
 - file upload handling
 - persistent database storage
-- modular service design
-- future-ready deployment structure
+- environment-based configuration
+- Docker image publishing
+- automated deployment pipeline
+- reverse proxy routing
+- production health checks
+- server backup automation
 
 ---
 
@@ -64,77 +69,88 @@ The goal is not just to build a nice-looking streaming UI, but to demonstrate re
 
 - User registration
 - User login
+- Google login integration
+- Gmail/email verification flow
 - Password hashing with bcrypt
 - JWT token generation
 - JWT-based protected routes
-- Protected creator-only features
+- Protected studio/admin features
+
+### User and Studio Roles
+
+- Regular user accounts for watching content
+- Studio accounts for uploading and managing content
+- Admin account support
+- Backend-enforced role validation
+- Users cannot upload videos unless allowed by role
+- Studios can upload films and TV-show-style content
 
 ### Video Platform
 
-- Upload videos with thumbnails and metadata
+- Upload videos with thumbnails, posters, tags, genres, and metadata
 - Browse videos on a streaming-style homepage
 - Watch individual videos
 - Increment video views
 - Fetch all videos
 - Fetch a single video by ID
+- Featured videos
+- New releases/categories support
+- Rating-related fields support
 
-### Creator Features
+### Creator / Studio Features
 
 - Protected upload page
 - Authenticated publishing flow
 - Ownership stored on each video
-- Secure `my videos` API for creators
-- Backend-enforced creator ownership logic
+- Secure `my videos` API
+- Backend-enforced ownership logic
+- Studio profile ownership support
 
 ### Media Handling
 
 - Static serving of uploaded files
-- Video and thumbnail upload flow
-- Video metadata persistence in MongoDB
+- Video upload support
+- Thumbnail upload support
+- Poster upload support
+- Persistent Docker volume for uploaded media
+
+### Admin / Platform Management
+
+- Admin account support
+- Admin email configuration
+- Email-related environment configuration
+- Foundation for moderation and management features
 
 ---
 
-## Tech Stack
+## DevOps Features
 
-### Frontend
+This project includes a practical DevOps workflow suitable for portfolio demonstration.
 
-- Next.js
-- React
-- TypeScript
-- Redux Toolkit
-- Axios
-- Framer Motion
-- React Hook Form
-- React Dropzone
-- Zod
+### Docker
 
-### Backend
+- Dockerized frontend
+- Dockerized backend
+- Docker Compose support
+- Production Docker Compose setup
+- Persistent Docker volume for uploaded media
 
-- NestJS
-- TypeScript
-- MongoDB
-- Mongoose
-- Passport JWT
-- bcrypt
-- class-validator
-- ValidationPipe
+### CI/CD Pipeline
 
-### Architecture Concepts
+GitHub Actions pipeline includes:
 
-- Monorepo
-- REST API design
-- JWT authentication
-- Protected routes
-- Ownership-based authorization
-- File upload handling
-- Modular backend structure
+- frontend linting
+- frontend build
+- backend tests
+- backend build
+- Docker image build
+- Docker image publishing to GitHub Container Registry
+- automatic deployment to AWS EC2
 
----
+### Docker Image Registry
 
-## Monorepo Structure
+Images are published to GitHub Container Registry:
 
-```bash id="2l6s2v"
-video-streaming-platform/
-├── frontend/
-└── backend/
-```
+```txt
+ghcr.io/supunss/flux-frontend
+ghcr.io/supunss/flux-backend
