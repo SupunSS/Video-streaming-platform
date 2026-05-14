@@ -25,25 +25,29 @@ const decodeTokenPayload = (token: string): TokenPayload | null => {
   }
 };
 
-const getLibraryKey = () => {
-  if (typeof window === "undefined") return `${LIBRARY_KEY_PREFIX}:guest`;
+const getAccessToken = () => {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("access_token");
+};
 
-  const token = localStorage.getItem("access_token");
-  if (!token) return `${LIBRARY_KEY_PREFIX}:guest`;
+const getLibraryKey = () => {
+  const token = getAccessToken();
+  if (!token) return "";
 
   const payload = decodeTokenPayload(token);
   const accountId = payload?.sub ?? payload?.email ?? payload?.username;
 
-  return accountId
-    ? `${LIBRARY_KEY_PREFIX}:user:${accountId}`
-    : `${LIBRARY_KEY_PREFIX}:guest`;
+  return accountId ? `${LIBRARY_KEY_PREFIX}:user:${accountId}` : "";
 };
 
 export const getLibraryVideos = (): Video[] => {
   if (typeof window === "undefined") return [];
 
+  const key = getLibraryKey();
+  if (!key) return [];
+
   try {
-    const raw = localStorage.getItem(getLibraryKey());
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -52,7 +56,11 @@ export const getLibraryVideos = (): Video[] => {
 
 export const saveLibraryVideos = (videos: Video[]) => {
   if (typeof window === "undefined") return;
-  localStorage.setItem(getLibraryKey(), JSON.stringify(videos));
+
+  const key = getLibraryKey();
+  if (!key) return;
+
+  localStorage.setItem(key, JSON.stringify(videos));
 };
 
 export const isVideoInLibrary = (videoId: string) => {
@@ -60,8 +68,10 @@ export const isVideoInLibrary = (videoId: string) => {
 };
 
 export const addVideoToLibrary = (video: Video) => {
-  const current = getLibraryVideos();
+  const key = getLibraryKey();
+  if (!key) return;
 
+  const current = getLibraryVideos();
   if (current.some((item) => item.id === video.id)) return;
 
   const updated = [video, ...current];
@@ -70,12 +80,18 @@ export const addVideoToLibrary = (video: Video) => {
 };
 
 export const removeVideoFromLibrary = (videoId: string) => {
+  const key = getLibraryKey();
+  if (!key) return;
+
   const updated = getLibraryVideos().filter((video) => video.id !== videoId);
   saveLibraryVideos(updated);
   window.dispatchEvent(new Event("library-updated"));
 };
 
 export const toggleLibraryVideo = (video: Video) => {
+  const key = getLibraryKey();
+  if (!key) return;
+
   if (isVideoInLibrary(video.id)) {
     removeVideoFromLibrary(video.id);
   } else {

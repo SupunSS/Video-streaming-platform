@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { FiInfo, FiPlay, FiStar, FiPlus, FiThumbsUp, FiCheck } from 'react-icons/fi';
+import { useAppSelector } from '@/store/hooks';
+import { notify } from '@/components/ui/CustomToast';
 import { Video } from '@/types/video.types';
 import { isVideoInLibrary, toggleLibraryVideo } from '@/lib/library';
 
@@ -54,10 +56,17 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
 
   const showNewBadge = isNewVideo(video.createdAt);
   const showHoverDetails = isActive || enableHoverDetails;
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
 
   const handleLibraryToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!isAuthenticated) {
+      notify.error('Please sign in to save videos');
+      router.push('/login');
+      return;
+    }
 
     toggleLibraryVideo(video);
     setSaved(isVideoInLibrary(video.id));
@@ -134,7 +143,13 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
             ? 'bg-neon-cyan border-neon-cyan'
             : 'bg-black/65 border-white/20 hover:bg-black/80'
         }`}
-        title={saved ? 'Remove from Library' : 'Add to Library'}
+        title={
+          saved
+            ? 'Remove from Library'
+            : isAuthenticated
+            ? 'Add to Library'
+            : 'Sign in to save to library'
+        }
       >
         {saved ? (
           <FiCheck className="w-4 h-4 text-dark-500" />

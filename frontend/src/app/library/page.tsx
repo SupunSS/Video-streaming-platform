@@ -19,6 +19,7 @@ import {
 import { Navbar } from '@/components/layout/Navbar';
 import { VideoCard } from '@/components/video/VideoCard';
 import { getLibraryVideos } from '@/lib/library';
+import { API_CONFIG } from '@/config/api.config';
 import { Video } from '@/types/video.types';
 
 type SortKey = 'recent' | 'title' | 'views' | 'rating';
@@ -80,9 +81,21 @@ function getNumericRating(rating: Video['rating']): number {
   return 0;
 }
 
+function buildUrl(url?: string) {
+  if (!url) return '';
+  return url.startsWith('http') ? url : `${API_CONFIG.BASE_URL}${url}`;
+}
+
+function getVideoImage(video: Video) {
+  if (video.posterUrl) return buildUrl(video.posterUrl);
+  if (video.thumbnail) return buildUrl(video.thumbnail);
+  return buildUrl(video.thumbnailUrl);
+}
+
 function normalizeVideo(video: Video, index: number): Video {
   return {
     ...video,
+    thumbnail: video.thumbnail || video.posterUrl || video.thumbnailUrl || '',
     type: video.type ?? 'movie',
     genre: video.genre ?? genreFallbacks[index % genreFallbacks.length],
     year: video.year ?? 2024 - (index % 5),
@@ -370,7 +383,7 @@ export default function LibraryPage() {
               <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl">
                 <div className="relative aspect-[16/10]">
                   <Image
-                    src={featuredVideo.thumbnail}
+                    src={getVideoImage(featuredVideo)}
                     alt={featuredVideo.title}
                     fill
                     sizes="(min-width: 1024px) 45vw, 100vw"

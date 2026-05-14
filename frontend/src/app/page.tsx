@@ -16,7 +16,7 @@ type RawVideo = {
   _id: string;
   title: string;
   description?: string;
-  thumbnailUrl: string;
+  thumbnailUrl?: string;
   posterUrl?: string;
   type?: 'movie' | 'tv_show';
   genres?: string[];
@@ -40,16 +40,18 @@ type RawVideo = {
   };
 };
 
-const buildUrl = (url: string) =>
-  url.startsWith('http') ? url : `${BASE_URL}${url}`;
+const buildUrl = (url?: string) => {
+  if (!url) return '';
+  return url.startsWith('http') ? url : `${BASE_URL}${url}`;
+};
 
 const mapToVideo = (video: RawVideo, index: number): Video => ({
   id: video._id,
   title: video.title,
   description: video.description || '',
   thumbnail: buildUrl(video.posterUrl || video.thumbnailUrl),
-  thumbnailUrl: video.thumbnailUrl,
-  posterUrl: video.posterUrl,
+  thumbnailUrl: video.thumbnailUrl ?? '',
+  posterUrl: video.posterUrl ?? '',
   type: video.type ?? 'movie',
   genres: video.genres ?? [],
   categories: video.categories ?? [],
