@@ -6,7 +6,7 @@ export default function UploadPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white">Upload content</h1>
         <p className="mt-2 text-zinc-400">
-          Add movies or TV show episodes with Netflix-style metadata.
+          Add movies or TV show episodes.
         </p>
       </div>
 
