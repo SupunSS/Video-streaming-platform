@@ -79,7 +79,7 @@ export const useAuth = () => {
 
       notify.success("Account created. Check your email to verify it.");
       const params = new URLSearchParams({ email: data.email });
-      if (data.verificationUrl) {
+      if (process.env.NODE_ENV !== "production" && data.verificationUrl) {
         params.set("devVerificationUrl", data.verificationUrl);
       }
       router.push(`/verify-email?${params.toString()}`);

@@ -58,6 +58,8 @@ export class AuthService {
       throw new ConflictException('Email already in use');
     }
 
+    this.mailService.assertVerificationEmailReady();
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const verification = this.createEmailVerificationToken();
 
@@ -227,6 +229,8 @@ export class AuthService {
         alreadyVerified: true,
       };
     }
+
+    this.mailService.assertVerificationEmailReady();
 
     const verification = this.createEmailVerificationToken();
     user.emailVerificationTokenHash = verification.hash;
