@@ -50,7 +50,6 @@ const NAV_ITEMS = [
   { label: 'Films', href: '/films' },
   { label: 'TV Shows', href: '/tv-shows' },
   { label: 'Library', href: '/library' },
-  { label: 'Subscriptions', href: '/subscriptions' },
 ];
 
 const subscribeToClient = () => () => undefined;
