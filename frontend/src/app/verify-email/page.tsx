@@ -16,9 +16,12 @@ function VerifyEmailContent() {
   const dispatch = useAppDispatch();
   const token = searchParams.get('token') ?? '';
   const initialEmail = searchParams.get('email') ?? '';
-  const devVerificationUrl = searchParams.get('devVerificationUrl') ?? '';
+  const initialDevVerificationUrl = searchParams.get('devVerificationUrl') ?? '';
 
   const [email, setEmail] = useState(initialEmail);
+  const [devVerificationUrl, setDevVerificationUrl] = useState(
+    initialDevVerificationUrl,
+  );
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);
 
@@ -53,6 +56,11 @@ function VerifyEmailContent() {
     try {
       setLoading(true);
       const data = await authService.resendVerification(email.trim());
+      if (process.env.NODE_ENV !== 'production' && data.verificationUrl) {
+        setDevVerificationUrl(data.verificationUrl);
+      } else {
+        setDevVerificationUrl('');
+      }
       notify.success(data.message || 'Verification email sent');
     } catch (err: unknown) {
       notify.error(getErrorMessage(err, 'Failed to resend verification email'));
@@ -107,7 +115,7 @@ function VerifyEmailContent() {
             </div>
           )}
 
-          {devVerificationUrl && (
+          {process.env.NODE_ENV !== 'production' && devVerificationUrl && (
             <div className="mt-6 rounded-xl border border-amber-300/20 bg-amber-400/10 p-4 text-sm text-amber-100">
               SMTP is not configured locally. Open this development verification link:
               <Link

@@ -154,3 +154,41 @@ Images are published to GitHub Container Registry:
 ```txt
 ghcr.io/supunss/flux-frontend
 ghcr.io/supunss/flux-backend
+```
+
+---
+
+## Environment Variables
+
+For EC2 Docker deployment, create a `.env` file beside `docker-compose.prod.yml`. Use `.env.production.example` as the template.
+
+Important production variables:
+
+- `MONGODB_URI`: MongoDB Atlas connection string.
+- `JWT_SECRET`: long random secret used to sign auth tokens.
+- `ADMIN_EMAILS`: comma-separated admin email allowlist.
+- `FRONTEND_URL`: public frontend URL used inside verification emails.
+- `NEXT_PUBLIC_API_URL`: public API URL used by the frontend.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_FAMILY`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`: SMTP settings for verification emails.
+
+For Gmail SMTP, enable 2-Step Verification on the Google account and create an App Password. Use that App Password as `SMTP_PASS`; do not use the normal Gmail password.
+
+---
+
+## Troubleshooting
+
+### Verification Email Is Not Sent
+
+If registration shows that email verification is not configured, the backend is missing SMTP settings. On EC2, update `.env` with valid SMTP values and restart:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate
+```
+
+Check backend logs:
+
+```bash
+docker logs flux-backend --tail 100
+```
+
+In production, the app requires SMTP before creating new local accounts. In local development only, the frontend may show a temporary verification link when SMTP is not configured.
