@@ -18,6 +18,8 @@ import {
 } from 'react-icons/fi';
 import { Navbar } from '@/components/layout/Navbar';
 
+const SHOW_SUBSCRIPTIONS_PAGE = false;
+
 type PlanId = 'basic' | 'standard' | 'premium';
 
 type Plan = {
@@ -269,6 +271,8 @@ export default function SubscriptionsPage() {
     () => plans.find((plan) => plan.id === selectedPlan) ?? plans[1],
     [selectedPlan],
   );
+
+  if (!SHOW_SUBSCRIPTIONS_PAGE) return null;
 
   return (
     <main className="min-h-screen bg-cyber-gradient text-white">
