@@ -192,3 +192,35 @@ docker logs flux-backend --tail 100
 ```
 
 In production, the app requires SMTP before creating new local accounts. In local development only, the frontend may show a temporary verification link when SMTP is not configured.
+
+## 📸 Project Screenshots
+
+### Homepage
+![Homepage](docs/screenshots/01-homepage.png)
+
+### Movie Watch Page
+![Movie Watch Page](docs/screenshots/03-movie-watch-page.png)
+
+### TV Show Details Page
+![TV Show Details Page](docs/screenshots/04-tv-show-info-page.png)
+
+### Episode Watch Page
+![Episode Watch Page](docs/screenshots/05-tv-episode-watch-page.png)
+
+### Admin Upload - Movie
+![Admin Upload Movie](docs/screenshots/07-upload-movie-form.png)
+
+### Admin Upload - TV Show
+![Admin Upload TV Show](docs/screenshots/08-upload-tv-show-form.png)
+
+### Admin Dashboard
+![Admin Dashboard](docs/screenshots/09-admin-dashboard-censored.png)
+
+### Backup Script
+![Backup Script](docs/screenshots/10-backup-script-terminal-censored.png)
+
+### Uptime Monitoring
+![Uptime Monitoring](docs/screenshots/11-uptime-kuma-monitoring-censored.png)
+
+### Login Page
+![Login Page](docs/screenshots/14-login-page.png)
