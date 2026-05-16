@@ -58,7 +58,7 @@ export const useAuth = () => {
         rememberAccount(data.user, data.access_token);
       }
       notify.success("Welcome back!");
-      router.push(data.user.accountType === "studio" ? "/dashboard" : "/");
+      router.push(data.user.isAdmin ? "/admin" : "/");
     } catch (err: unknown) {
       const message = getErrorMessage(err, "Google login failed");
       notify.error(message);
@@ -100,7 +100,7 @@ export const useAuth = () => {
     dispatch(setCredentials({ user: account.user, token: account.token }));
     rememberAccount(account.user, account.token);
     notify.success(`Switched to ${account.user.username}`);
-    router.push(account.user.accountType === "studio" ? "/dashboard" : "/");
+    router.push(account.user.isAdmin ? "/admin" : "/");
   }, [dispatch, router]);
 
   return {

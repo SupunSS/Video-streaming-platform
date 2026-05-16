@@ -17,7 +17,6 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { MailService } from './mail.service';
 
-const STUDIO_AGREEMENT_VERSION = '2026-04-30';
 const EMAIL_VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 const parseAdminEmails = (value?: string) =>
@@ -42,15 +41,8 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
-    const { username, password, accountType } = registerDto;
+    const { username, password } = registerDto;
     const email = registerDto.email.trim().toLowerCase();
-    const isStudioAccount = accountType === 'studio';
-
-    if (isStudioAccount && !registerDto.studioAgreementAccepted) {
-      throw new BadRequestException(
-        'You must agree to the Studio Account Privacy Policy to create a studio account.',
-      );
-    }
 
     const existing = await this.userModel.findOne({ email });
 
@@ -67,12 +59,7 @@ export class AuthService {
       username,
       email,
       password: hashedPassword,
-      accountType: accountType || 'user',
-      studioAgreementAccepted: isStudioAccount,
-      studioAgreementAcceptedAt: isStudioAccount ? new Date() : undefined,
-      studioAgreementVersion: isStudioAccount
-        ? STUDIO_AGREEMENT_VERSION
-        : undefined,
+      accountType: 'user',
       authProvider: 'local',
       emailVerified: false,
       emailVerificationTokenHash: verification.hash,

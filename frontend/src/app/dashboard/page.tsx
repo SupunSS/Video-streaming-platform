@@ -333,7 +333,7 @@ export default function DashboardPage() {
     const fetchMyVideos = async () => {
       try {
         const currentUser = await userService.getMe();
-        if (currentUser.accountType !== 'studio') {
+        if (!currentUser.isAdmin) {
           router.replace('/');
           return;
         }
@@ -391,8 +391,8 @@ export default function DashboardPage() {
         {/* ── Page header row ── */}
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">My Dashboard</h1>
-            <p className="mt-1 text-sm text-white/40">Manage your uploaded videos</p>
+            <h1 className="text-2xl font-bold text-white">Content Dashboard</h1>
+            <p className="mt-1 text-sm text-white/40">Manage uploaded FLUX videos</p>
           </div>
 
           <div className="flex gap-3">

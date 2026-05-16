@@ -86,8 +86,8 @@ export const Navbar = () => {
 
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
-  const isStudio = user?.accountType === 'studio';
   const isAdmin = user?.isAdmin === true;
+  const accountRoleLabel = isAdmin ? 'Admin' : 'User';
 
   const mounted = useSyncExternalStore(
     subscribeToClient,
@@ -236,15 +236,8 @@ export const Navbar = () => {
     dispatch(setCredentials({ user: account.user, token: account.token }));
     rememberAccount(account.user, account.token);
     setDropdownOpen(false);
-    router.push(account.user.accountType === 'studio' ? '/dashboard' : '/');
+    router.push(account.user.isAdmin ? '/admin' : '/');
   };
-
-  const studioQuickLoginAccounts = quickLoginAccounts.filter(
-    (account) => account.user.accountType === 'studio',
-  );
-  const viewerQuickLoginAccounts = quickLoginAccounts.filter(
-    (account) => account.user.accountType !== 'studio',
-  );
 
   const renderQuickLoginAccount = (account: RememberedAccount) => {
     const accountAvatar = buildAvatarSrc(account.user.avatar);
@@ -282,22 +275,6 @@ export const Navbar = () => {
     );
   };
 
-  const renderQuickLoginCategory = (
-    label: string,
-    accounts: RememberedAccount[],
-  ) => {
-    if (accounts.length === 0) return null;
-
-    return (
-      <div className="space-y-1">
-        <p className="px-4 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300/70">
-          {label}
-        </p>
-        {accounts.slice(0, 4).map(renderQuickLoginAccount)}
-      </div>
-    );
-  };
-
   const renderQuickLoginGroups = (title: string) => {
     if (quickLoginAccounts.length === 0) return null;
 
@@ -306,8 +283,7 @@ export const Navbar = () => {
         <p className="px-4 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
           {title}
         </p>
-        {renderQuickLoginCategory('Studios', studioQuickLoginAccounts)}
-        {renderQuickLoginCategory('Viewer accounts', viewerQuickLoginAccounts)}
+        {quickLoginAccounts.slice(0, 4).map(renderQuickLoginAccount)}
       </div>
     );
   };
@@ -424,7 +400,7 @@ export const Navbar = () => {
             )}
 
            
-            {mounted && isAuthenticated && isStudio && (
+            {mounted && isAuthenticated && isAdmin && (
               <Link
                 href="/upload"
                 className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/[0.1] hover:text-white sm:inline-flex"
@@ -502,11 +478,9 @@ export const Navbar = () => {
                                 {user?.username}
                               </p>
                               <p className="truncate text-xs text-white/45">{user?.email}</p>
-                              {isStudio && (
-                                <span className="mt-0.5 inline-block rounded-full bg-sky-400/15 px-2 py-0.5 text-[10px] font-medium text-sky-300">
-                                  Studio
-                                </span>
-                              )}
+                              <span className="mt-0.5 inline-block rounded-full bg-sky-400/15 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                                {accountRoleLabel}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -515,7 +489,7 @@ export const Navbar = () => {
                         <div className="p-2">
                           {renderQuickLoginGroups('Switch account')}
 
-                          {isStudio && (
+                          {isAdmin && (
                             <Link
                               href="/dashboard"
                               onClick={() => setDropdownOpen(false)}
@@ -547,8 +521,8 @@ export const Navbar = () => {
                             Settings
                           </Link>
 
-                          {/* Upload — studios only */}
-                          {isStudio && (
+                          {/* Upload — admins only */}
+                          {isAdmin && (
                             <Link
                               href="/upload"
                               onClick={() => setDropdownOpen(false)}

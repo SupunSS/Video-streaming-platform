@@ -1,10 +1,7 @@
 import {
   IsEmail,
-  IsBoolean,
   IsString,
   MinLength,
-  IsOptional,
-  IsIn,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -17,12 +14,4 @@ export class RegisterDto {
   @IsString()
   @MinLength(6)
   password!: string;
-
-  @IsOptional()
-  @IsIn(['user', 'studio'])
-  accountType?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  studioAgreementAccepted?: boolean;
 }
