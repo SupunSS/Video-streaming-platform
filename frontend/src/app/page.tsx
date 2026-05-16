@@ -9,6 +9,7 @@ import { FiPlayCircle } from 'react-icons/fi';
 import { Video } from '@/types/video.types';
 import { useVideos } from '@/features/video/useVideos';
 import { API_CONFIG } from '@/config/api.config';
+import { useAuth } from '@/features/auth/useAuth';
 
 const BASE_URL = API_CONFIG.BASE_URL;
 
@@ -86,6 +87,8 @@ const mapToVideo = (video: RawVideo, index: number): Video => ({
 
 export default function HomePage() {
   const { videos: rawVideos, loading } = useVideos();
+  const { user } = useAuth();
+  const isAdmin = user?.isAdmin === true;
 
   const videos = useMemo(
     () => (rawVideos as RawVideo[]).map((video, index) => mapToVideo(video, index)),
@@ -124,13 +127,19 @@ export default function HomePage() {
           </h1>
 
           <p className="max-w-xl text-base leading-7 text-white/55">
-            Upload your first title to start building a cinematic front page experience.
+            {isAdmin
+              ? 'Upload your first title to start building a cinematic front page experience.'
+              : 'The FLUX catalog is being prepared. Check back soon for new titles.'}
           </p>
 
-          <Link
-            href="/upload"
-            className="rounded-xl bg-white px-6 py-3 font-semibold text-black transition hover:bg-white/90"
-          >Upload the first video</Link>
+          {isAdmin && (
+            <Link
+              href="/upload"
+              className="rounded-xl bg-white px-6 py-3 font-semibold text-black transition hover:bg-white/90"
+            >
+              Upload the first video
+            </Link>
+          )}
         </div>
       </div>
     );

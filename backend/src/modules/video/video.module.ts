@@ -3,12 +3,13 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { VideoService } from './video.service';
 import { VideoController } from './video.controller';
 import { Video, VideoSchema } from './schemas/video.schema';
+import { AdminGuard } from '../admin/guards/admin.guard';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Video.name, schema: VideoSchema }]),
   ],
   controllers: [VideoController],
-  providers: [VideoService],
+  providers: [VideoService, AdminGuard],
 })
 export class VideoModule {}

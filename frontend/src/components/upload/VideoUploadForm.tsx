@@ -173,7 +173,7 @@ export default function UploadPage() {
   const [myVideos, setMyVideos] = useState<VideoResponse[]>([]);
 
   const checkingAuth = !isAuthenticated;
-  const isStudio = user?.accountType === 'studio';
+  const isAdmin = user?.isAdmin === true;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -182,19 +182,19 @@ export default function UploadPage() {
   }, [isAuthenticated, router]);
 
   useEffect(() => {
-    if (!isAuthenticated || !user || user.accountType !== 'studio') return;
+    if (!isAuthenticated || !user || !isAdmin) return;
 
-    const loadStudioVideos = async () => {
+    const loadAdminVideos = async () => {
       try {
         const data = await videoService.getMyVideos();
         setMyVideos(data);
       } catch (error) {
-        console.error('Failed to load studio videos:', error);
+        console.error('Failed to load admin videos:', error);
       }
     };
 
-    void loadStudioVideos();
-  }, [isAuthenticated, user]);
+    void loadAdminVideos();
+  }, [isAuthenticated, isAdmin, user]);
 
   useEffect(() => {
     return () => {
@@ -420,15 +420,15 @@ export default function UploadPage() {
     );
   }
 
-  if (isAuthenticated && user && !isStudio) {
+  if (isAuthenticated && user && !isAdmin) {
     return (
       <div className="min-h-screen bg-cyber-gradient">
         <Navbar />
         <main className="flex min-h-screen items-center justify-center px-4 pt-24">
           <div className="glass-card max-w-lg p-8 text-center">
-            <h1 className="text-2xl font-bold text-white">Studio access required</h1>
+            <h1 className="text-2xl font-bold text-white">Admin access required</h1>
             <p className="mt-3 text-sm text-white/55">
-              Only studio accounts can upload movies and TV show episodes.
+              Only FLUX admins can upload movies and TV show episodes.
             </p>
           </div>
         </main>

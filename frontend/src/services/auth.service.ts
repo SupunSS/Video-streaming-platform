@@ -29,9 +29,6 @@ export interface RegisterPayload {
   username: string;
   email: string;
   password: string;
-  avatar?: string;
-  accountType?: "user" | "studio";
-  studioAgreementAccepted?: boolean;
 }
 
 export interface LoginPayload {

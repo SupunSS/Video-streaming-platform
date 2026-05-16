@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminGuard } from '../admin/guards/admin.guard';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { RateVideoDto } from './dto/rate-video.dto';
 import { VideoService } from './video.service';
@@ -49,7 +50,7 @@ export class VideoController {
     return this.videoService.findOne(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Post()
   createVideo(@Body() dto: CreateVideoDto, @Req() req: AuthenticatedRequest) {
     if (!dto.videoUrl) {
@@ -65,7 +66,7 @@ export class VideoController {
     });
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Post('upload')
   @UseInterceptors(
     FileFieldsInterceptor([
